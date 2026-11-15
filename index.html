@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E05252">
+  <title>Upsell Compass – MERP Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>@media (min-width: 980px) { .dp-close { display: none; } }</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="device">
+      <div id="app-root" style="display:flex;flex-direction:column;height:100%;position:relative;"></div>
+      <div id="toast-host"></div>
+    </div>
+    <aside class="devpanel" id="devpanel" aria-label="Development and testing panel"></aside>
+  </div>
+  <div id="big-host"></div>
+  <button class="dev-fab" data-a="dev-open">🧪 Test panel</button>
+
+  <!-- 1. Configuration + dummy data -->
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <!-- 2. Business logic (no UI) -->
+  <script src="js/engine/utils.js"></script>
+  <script src="js/engine/recommendation-engine.js"></script>
+  <script src="js/engine/mcat-engine.js"></script>
+  <script src="js/engine/pricing-engine.js"></script>
+  <script src="js/email/email-templates.js"></script>
+  <script src="js/engine/proposal-service.js"></script>
+  <!-- 3. UI components -->
+  <script src="js/ui/common.js"></script>
+  <script src="js/ui/seller-profile.js"></script>
+  <script src="js/ui/proposals.js"></script>
+  <script src="js/ui/proposal-editor.js"></script>
+  <script src="js/ui/email-preview.js"></script>
+  <script src="js/ui/devpanel.js"></script>
+  <!-- 4. Tests + controller -->
+  <script src="js/tests.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
