@@ -1,0 +1,2647 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E05252">
+  <title>Upsell Compass – MERP Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+:root {
+  --red: #E05252; --red-dark: #D44747; --red-soft: #FDECEC;
+  --ink: #1F1F1F; --muted: #6B6B6B; --line: #E4E4E4; --bg: #FFFFFF; --grey: #F4F4F4;
+  --green: #22A12B; --amber: #B45309; --amber-soft: #FFF4E0; --blue: #2F5BEA; --blue-soft: #EEF3FF; --navy: #1F2A7C;
+  --stage: #E9ECF2;
+  --font: 'Lexend', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--font); color: var(--ink); background: var(--bg); font-size: 14px; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; font-size: 14px; }
+
+/* ---------- stage (desktop preview) ---------- */
+.stage { min-height: 100%; }
+.device { position: relative; width: 100%; height: 100vh; height: 100dvh; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.devpanel { display: none; }
+@media (min-width: 980px) {
+  body { background: var(--stage); }
+  .stage { display: flex; gap: 28px; justify-content: center; align-items: flex-start; padding: 24px; }
+  .device { width: 400px; height: min(860px, calc(100vh - 48px)); border-radius: 28px; border: 10px solid #1B1B1F; box-shadow: 0 20px 50px rgba(0,0,0,.25); flex: 0 0 auto; }
+  .devpanel { display: flex; flex-direction: column; width: 560px; max-width: calc(100vw - 480px); height: calc(100vh - 48px); background: #fff; border-radius: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.08); overflow: hidden; }
+  .dev-fab { display: none !important; }
+}
+.devpanel.open-mobile { display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 200; background: #fff; }
+
+/* ---------- MERP header ---------- */
+.merp-header { background: var(--red); display: flex; align-items: center; gap: 10px; padding: 10px 12px; flex: 0 0 auto; position: relative; z-index: 20; }
+.hbtn { background: none; border: 0; color: #fff; padding: 4px; display: inline-flex; align-items: center; justify-content: center; position: relative; }
+.hbtn svg { width: 26px; height: 26px; }
+.search { flex: 1; display: flex; align-items: center; background: #fff; border-radius: 6px; padding: 0 10px; height: 38px; position: relative; }
+.search input { border: 0; outline: 0; flex: 1; font-size: 15px; min-width: 0; background: transparent; }
+.search svg { width: 20px; height: 20px; }
+.badge { position: absolute; top: -2px; right: -2px; background: #fff; color: var(--red); font-size: 10px; font-weight: 700; border-radius: 10px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--red); }
+.dropdown { position: absolute; top: 46px; left: 0; right: 0; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); max-height: 340px; overflow: auto; z-index: 50; }
+.dropdown .dd-item { padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 13px; cursor: pointer; }
+.dropdown .dd-item:hover { background: var(--grey); }
+.dd-item small { color: var(--muted); display: block; }
+.notif-pop { position: absolute; top: 56px; right: 8px; width: 300px; max-width: calc(100% - 16px); }
+
+/* ---------- seller bar + sub nav ---------- */
+.seller-bar { text-align: center; padding: 12px 16px 0; flex: 0 0 auto; }
+.seller-bar .nm { display: inline-block; padding-bottom: 8px; border-bottom: 1px solid #CFCFCF; font-weight: 600; font-size: 16px; }
+.seller-bar .nm span { color: var(--muted); font-weight: 400; font-size: 13px; }
+.subnav { display: flex; margin: 8px 16px 0; border-bottom: 1px solid var(--line); flex: 0 0 auto; }
+.subnav button { flex: 1; background: none; border: 0; padding: 10px 0; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; }
+.subnav button.on { color: var(--red); border-color: var(--red); font-weight: 600; }
+
+.screen { flex: 1; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; position: relative; }
+.pad { padding: 14px 16px 24px; }
+.section-title { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+.section-title h2 { margin: 0; font-size: 19px; font-weight: 600; }
+
+/* ---------- generic ---------- */
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 14px; background: #fff; margin-bottom: 12px; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.pill.sys { background: var(--blue-soft); color: var(--blue); }
+.pill.warn { background: var(--amber-soft); color: var(--amber); }
+.pill.ok { background: #E7F6E8; color: var(--green); }
+.pill.red { background: var(--red-soft); color: var(--red); }
+.pill.grey { background: var(--grey); color: var(--muted); }
+.btn { border-radius: 6px; padding: 9px 16px; font-size: 14px; border: 1px solid var(--red); background: #fff; color: var(--red); }
+.btn.solid { background: var(--red); color: #fff; }
+.btn.block { display: block; width: 100%; padding: 14px; font-size: 16px; border-radius: 8px; }
+.btn.ghost { border-color: var(--line); color: var(--ink); }
+.btn.sm { padding: 6px 12px; font-size: 13px; }
+.btn[aria-disabled="true"] { opacity: .55; }
+.link { background: none; border: 0; color: var(--blue); padding: 0; font-size: 13px; text-decoration: underline; }
+
+/* ---------- profile ---------- */
+.svc-line { display: flex; justify-content: space-between; padding: 12px 14px; background: var(--grey); border-radius: 10px; margin-bottom: 12px; font-size: 13px; }
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.metric { border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px; text-align: center; }
+.metric .v { font-size: 20px; font-weight: 600; }
+.metric .l { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.3; }
+.metric.bad { border-color: #F3B4B4; background: var(--red-soft); }
+.metric.bad .v { color: var(--red); }
+.compass { border: 1px solid #CBD7FF; border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+.compass .top { background: linear-gradient(120deg, var(--navy), var(--blue)); color: #fff; padding: 14px; }
+.compass .top .eyebrow { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; opacity: .8; display: flex; align-items: center; gap: 6px; }
+.compass .top .rec { font-size: 22px; font-weight: 600; margin-top: 6px; }
+.compass .top .sub { font-size: 12.5px; opacity: .9; margin-top: 4px; line-height: 1.45; }
+.compass.servicing .top { background: linear-gradient(120deg, #8A4B08, #C97A12); }
+.compass .body { padding: 12px 14px; }
+details.why { border-top: 1px solid var(--line); }
+details.why summary { list-style: none; padding: 12px 14px; font-weight: 600; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; }
+details.why summary::-webkit-details-marker { display: none; }
+details.why summary::after { content: '▾'; color: var(--muted); }
+details.why[open] summary::after { content: '▴'; }
+details.why .content { padding: 0 14px 14px; font-size: 13px; line-height: 1.55; }
+.chk { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.chk .ic { width: 18px; flex: 0 0 18px; text-align: center; font-weight: 700; }
+.chk .ic.ok { color: var(--green); } .chk .ic.bad { color: var(--red); } .chk .ic.info { color: var(--blue); }
+.reason { background: var(--blue-soft); border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 13px; line-height: 1.5; }
+.compass.servicing .reason { background: var(--amber-soft); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #C9D6FF; background: var(--blue-soft); color: var(--navy); border-radius: 16px; padding: 5px 10px; font-size: 12.5px; }
+.chip .rk { font-size: 10px; font-weight: 700; border-radius: 8px; padding: 1px 5px; background: var(--navy); color: #fff; }
+.chip .rk.B { background: #7A8094; }
+.chip.ext { border-color: #F2C27A; background: var(--amber-soft); color: #7A4A06; }
+.chip button { background: none; border: 0; padding: 0 0 0 2px; color: inherit; font-size: 15px; line-height: 1; }
+.mcat-reason { font-size: 12px; color: var(--muted); margin: 4px 0 10px; line-height: 1.45; }
+
+table.eval { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+table.eval th, table.eval td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.eval th { color: var(--muted); font-weight: 500; }
+table.eval tr.sel td { background: #F2F6FF; }
+table.eval tr.no td { color: #A0A0A0; }
+
+/* ---------- proposals list ---------- */
+.reveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s ease; }
+.reveal.in { grid-template-rows: 1fr; }
+.reveal > div { overflow: hidden; }
+.rec-section { background: linear-gradient(#F5F8FF, #fff); border-bottom: 6px solid #F1F1F1; }
+.rec-section .hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 0; }
+.rec-section .hd b { font-size: 15px; }
+.pcard { padding: 16px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+.pcard .l1 { display: flex; justify-content: space-between; gap: 8px; }
+.pcard .l1 .id { color: var(--muted); }
+.pcard .l2 { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: var(--muted); }
+.pcard .l2 b { color: var(--ink); font-weight: 400; }
+.pcard .acts { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.pcard.recommended { border: 1px solid #CBD7FF; border-radius: 12px; margin: 10px 16px 14px; background: #fff; box-shadow: 0 2px 10px rgba(47,91,234,.08); }
+.pcard.recommended .amt { font-size: 20px; font-weight: 600; color: var(--ink); }
+.status-Approved { color: var(--green) !important; }
+.status-Sent { color: var(--blue) !important; font-weight: 600; }
+.hold { background: var(--amber-soft); color: #7A4A06; border-radius: 8px; padding: 10px; font-size: 12.5px; margin-top: 10px; line-height: 1.45; }
+.fab { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: 60px; height: 60px; border-radius: 50%; background: var(--red); color: #fff; border: 0; box-shadow: 0 6px 16px rgba(224,82,82,.45); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.fab svg { width: 30px; height: 30px; }
+.list-bottom-space { height: 96px; }
+.filter-pop { position: absolute; right: 12px; top: 48px; background: #fff; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18); z-index: 30; min-width: 160px; }
+.filter-pop button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.filter-pop button.on { color: var(--red); font-weight: 600; }
+
+/* ---------- editor ---------- */
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.tabs button { flex: 0 0 auto; background: #fff; border: 1px solid #9A9A9A; border-radius: 6px; padding: 8px 12px; font-size: 14px; color: #555; }
+.tabs button.on { border-color: var(--red); color: var(--ink); }
+.select { position: relative; margin-top: 14px; width: 100%; }
+.select select { width: 100%; appearance: none; -webkit-appearance: none; border: 1px solid #CFCFCF; border-radius: 6px; padding: 12px 40px 12px 14px; background: #fff; font-size: 15px; color: var(--ink); }
+.select::after { content: '⌄'; position: absolute; right: 14px; top: 8px; font-size: 18px; color: #888; pointer-events: none; }
+.banner { border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; margin-top: 12px; }
+.banner.sys { background: var(--blue-soft); color: var(--navy); }
+.banner.chg { background: var(--amber-soft); color: #7A4A06; }
+.svc-card { background: #F4F4F4; border: 1px solid #DADADA; border-radius: 10px; padding: 14px; margin-top: 14px; }
+.svc-card .t { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 16px; }
+.xbtn { background: none; border: 0; padding: 0; color: #888; }
+.xbtn svg { width: 24px; height: 24px; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid #CFCFCF; border-radius: 6px; background: #fff; }
+.stepper button { background: none; border: 0; width: 32px; height: 30px; font-size: 18px; color: var(--ink); }
+.stepper span { min-width: 44px; text-align: center; font-weight: 600; font-size: 13px; }
+.line { background: #fff; border: 1px solid #E2E2E2; border-radius: 8px; padding: 10px; margin-top: 10px; }
+.line .nm { font-weight: 600; font-size: 13.5px; }
+.kv { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13.5px; }
+.kv .k { color: var(--muted); }
+.inp { border: 0; border-bottom: 1px solid #9A9A9A; padding: 4px 2px; width: 110px; font-size: 15px; background: transparent; outline: 0; }
+.inp:focus { border-color: var(--red); }
+.inp.wide { width: 150px; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; font-size: 16px; color: #555; }
+.sw { width: 52px; height: 30px; border-radius: 15px; background: #DADADA; border: 0; position: relative; transition: background .2s; flex: 0 0 auto; }
+.sw::after { content: ''; position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: left .2s; }
+.sw.on { background: var(--green); }
+.sw.on::after { left: 26px; }
+.sub-box { background: #FAFAFA; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 4px; font-size: 13px; }
+.sum { border: 1px solid var(--line); border-radius: 10px; margin-top: 16px; overflow: hidden; }
+.sum .r { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+.sum .r:last-child { border-bottom: 0; }
+.sum .r.big { background: var(--grey); font-weight: 600; font-size: 14px; }
+.err { background: var(--red-soft); color: #9B1C1C; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; margin-top: 12px; }
+.sticky-bottom { position: sticky; bottom: 0; background: #fff; padding: 12px 0 4px; display: flex; gap: 10px; }
+.sticky-bottom .btn { flex: 1; padding: 13px; font-size: 15px; }
+
+/* ---------- sheet / modal ---------- */
+.overlay { position: absolute; inset: 0; background: rgba(0,0,0,.4); z-index: 60; display: flex; align-items: flex-end; animation: fade .2s; }
+.overlay.center { align-items: center; justify-content: center; padding: 20px; }
+.sheet { background: #fff; width: 100%; max-height: 85%; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; animation: up .25s ease; }
+.sheet .sh-hd { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.sheet .sh-bd { overflow-y: auto; padding: 8px 16px 16px; }
+.modal { background: #fff; border-radius: 14px; padding: 18px; width: 100%; max-width: 340px; animation: up .2s; }
+.pick { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.pick input { margin-top: 3px; accent-color: var(--red); width: 18px; height: 18px; }
+.pick .meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+.pick.out .nm { color: #9B1C1C; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes up { from { transform: translateY(30px); opacity: 0; } }
+
+/* ---------- email preview / sent ---------- */
+.mailhead { border: 1px solid var(--line); border-radius: 10px; font-size: 13px; overflow: hidden; }
+.mailhead .r { display: flex; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.mailhead .r:last-child { border-bottom: 0; }
+.mailhead .k { color: var(--muted); width: 54px; flex: 0 0 54px; }
+.mailframe { width: 100%; border: 1px solid var(--line); border-radius: 10px; margin-top: 12px; min-height: 400px; background: #EEF2F8; display: block; }
+.big-modal { position: fixed; inset: 0; z-index: 300; background: rgba(10,15,30,.6); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+.big-modal .bar { width: 100%; max-width: 900px; display: flex; justify-content: space-between; align-items: center; color: #fff; margin-bottom: 10px; gap: 10px; }
+.big-modal iframe { width: 100%; max-width: 900px; flex: 1; border: 0; border-radius: 10px; background: #EEF2F8; }
+.sending { position: absolute; inset: 0; background: rgba(255,255,255,.96); z-index: 80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 24px; }
+.spinner { width: 56px; height: 56px; border-radius: 50%; border: 5px solid #F3D0D0; border-top-color: var(--red); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.steps { font-size: 13px; color: var(--muted); line-height: 1.9; text-align: left; }
+.steps .done { color: var(--green); }
+.success { text-align: center; padding: 26px 18px 10px; }
+.tick { width: 74px; height: 74px; border-radius: 50%; background: #E7F6E8; color: var(--green); display: inline-flex; align-items: center; justify-content: center; font-size: 40px; animation: pop .4s ease; }
+@keyframes pop { 0% { transform: scale(.4); } 80% { transform: scale(1.1); } }
+.kvlist { border: 1px solid var(--line); border-radius: 10px; margin: 16px 0; text-align: left; }
+.kvlist .r { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.kvlist .r:last-child { border-bottom: 0; }
+.kvlist .r span:last-child { text-align: right; font-weight: 600; word-break: break-all; }
+
+.toast { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 120; max-width: 88%; text-align: center; animation: up .2s; }
+.dev-fab { position: fixed; left: 0; top: 42%; z-index: 150; background: #1B1B1F; color: #fff; border: 0; border-radius: 10px 0 0 10px; /* appears on the right after rotate */ padding: 10px 6px; font-size: 11px; writing-mode: vertical-rl; transform: rotate(180deg); box-shadow: 0 4px 12px rgba(0,0,0,.3); opacity: .85; }
+
+/* ---------- dev panel ---------- */
+.dp-hd { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.dp-hd b { font-size: 15px; }
+.dp-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.dp-tabs button { flex: 1; background: none; border: 0; padding: 10px; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; }
+.dp-tabs button.on { color: var(--ink); border-color: var(--ink); font-weight: 600; }
+.dp-bd { flex: 1; overflow: auto; padding: 12px 16px 20px; font-size: 13px; }
+.sc-group { margin-bottom: 10px; }
+.sc-group h4 { margin: 10px 0 6px; font-size: 13px; }
+.sc-item { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 13px; }
+.sc-item.on { border-color: var(--red); background: var(--red-soft); }
+.sc-item small { display: block; color: var(--muted); margin-top: 2px; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.dt th, table.dt td { border-bottom: 1px solid var(--line); padding: 6px 4px; text-align: left; vertical-align: top; }
+table.dt th { color: var(--muted); font-weight: 500; }
+.pass { color: var(--green); font-weight: 700; } .fail { color: var(--red); font-weight: 700; }
+textarea.cfg { width: 100%; height: 420px; font-family: Consolas, monospace; font-size: 11.5px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.kpis div { border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; }
+.kpis b { display: block; font-size: 18px; }
+
+</style>
+  <style>@media (min-width: 980px) { .dp-close { display: none; } }</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="device">
+      <div id="app-root" style="display:flex;flex-direction:column;height:100%;position:relative;"></div>
+      <div id="toast-host"></div>
+    </div>
+    <aside class="devpanel" id="devpanel" aria-label="Development and testing panel"></aside>
+  </div>
+  <div id="big-host"></div>
+  <button class="dev-fab" data-a="dev-open">🧪 Test panel</button>
+
+  <!-- 1. Configuration + dummy data -->
+  <script>/* ---- js/config.js ---- */
+/* =====================================================================
+ * UPSELL COMPASS – CONFIGURATION
+ * All business thresholds, rule tables, MCAT selection order and prices
+ * live here. Screens never hard-code these values.
+ * (Also editable live from the Dev Panel → Config tab.)
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.DEFAULT_CONFIG = {
+  meta: {
+    version: '0.1-prototype',
+    pricingSource: 'Copy of Services list _ Prices _ BL Alocation.xlsx → "Sale Price" + "Differential Price" sheets'
+  },
+
+  gstRate: 0.18,
+  defaultValidityDays: 7,
+  tdsDefaultPct: 2,               // editable on the proposal; confirm the applicable section with Finance
+  recipientEmail: 'prakhar.mathur@indiamart.com',
+  executive: {                    // dummy executive shown in the email signature
+    name: 'Aman Verma',
+    designation: 'Client Relationship Executive',
+    phone: '+91-79-4716-0000',
+    email: 'aman.verma@indiamart.com'
+  },
+  support: { email: 'customercare@indiamart.com', phone: '096-9696-9696' },
+  proposalLinkBase: 'https://seller.indiamart.com/proposalacknowledgement',
+  proposalIdStart: 4971101,
+
+  /* ---------- A. First-level servicing checks (OR logic) ---------- */
+  servicing: {
+    logic: 'OR',
+    checks: [
+      { id: 'BL_DAU', metric: 'blDau',       label: 'BL DAU (30d)',  op: '<',  value: 20, unit: '' },
+      { id: 'PNS',    metric: 'pnsSuccess',  label: 'PNS Success',   op: '<=', value: 60, unit: '%' },
+      { id: 'A_RANK', metric: 'totalARank',  label: 'Total A Rank',  op: '==', value: 0,  unit: '' }
+    ],
+    // What to propose when the seller enters Focus on Servicing, keyed by "<currentService>|<tenure>".
+    // null  => no automatic proposal (avoid a duplicate renewal recommendation).
+    proposalByCurrentService: {
+      'INDIA_STAR|1Y':  { serviceKey: 'INDIA_STAR', tenure: 'MYR' },
+      'INDIA_STAR|MYR': null
+    }
+  },
+
+  /* ---------- C. Service recommendation (evaluated top-down, first match wins) ----------
+   * Preferred Star Pro rows are listed first so they take precedence whenever the
+   * applicable preferred-district threshold is met. The rows are also mutually exclusive. */
+  upsellRules: [
+    { id: 'R1', when: { optedARank: { op: '>',  value: 3 }, preferredDistricts: { op: '>=', value: 15 } },
+      serviceKey: 'PREFERRED_STAR_PRO',
+      reason: 'Strong opted A-rank base (>3) and wide district interest (≥15). Preferred Star Pro adds district-preferred visibility on categories the seller has not opted yet.' },
+    { id: 'R2', when: { optedARank: { op: '>',  value: 3 }, preferredDistricts: { op: '<',  value: 15 } },
+      serviceKey: 'IM_STAR_PRO',
+      reason: 'Opportunity to expand visibility through non-opted MCATs.' },
+    { id: 'R3', when: { optedARank: { op: '<=', value: 3 }, preferredDistricts: { op: '>=', value: 30 } },
+      serviceKey: 'PREFERRED_STAR_PRO',
+      reason: 'Few opted A-rank MCATs (≤3) but wide district coverage (≥30). Preferred Star Pro strengthens the opted categories across the seller\'s preferred districts.' },
+    { id: 'R4', when: { optedARank: { op: '<=', value: 3 }, preferredDistricts: { op: '<',  value: 30 } },
+      serviceKey: 'IM_STAR_PRO',
+      reason: 'Few opted A-rank MCATs (≤3) and focused district coverage (<30). IM Star Pro deepens visibility on the categories the seller already opted.' }
+  ],
+
+  /* ---------- MCAT recommendation ---------- */
+  mcatOptedBand: { metric: 'optedARank', op: '>', value: 3, aboveKey: 'GT3', belowKey: 'LE3' },
+
+  mcatScenarios: {
+    GT3_ISP: { label: '>3 opted A-rank MCATs – IM Star Pro',        band: 'GT3', serviceKey: 'IM_STAR_PRO',        targetCount: 2, prefer: 'nonOpted',
+               criteria: { dirListingRank: { op: '<=', value: 5 }, last30BL: { op: '<=', value: 5 } } },
+    GT3_PSP: { label: '>3 opted A-rank MCATs – Preferred Star Pro', band: 'GT3', serviceKey: 'PREFERRED_STAR_PRO', targetCount: 2, prefer: 'nonOpted',
+               criteria: { dirListingRank: { op: '<=', value: 5 }, last30BL: { op: '>',  value: 5 } } },
+    LE3_PSP: { label: '≤3 opted A-rank MCATs – Preferred Star Pro', band: 'LE3', serviceKey: 'PREFERRED_STAR_PRO', targetCount: 3, prefer: 'opted',
+               criteria: { dirListingRank: { op: '<=', value: 5 }, last30BL: { op: '<=', value: 5 } } },
+    LE3_ISP: { label: '≤3 opted A-rank MCATs – IM Star Pro',        band: 'LE3', serviceKey: 'IM_STAR_PRO',        targetCount: 3, prefer: 'opted',
+               criteria: { dirListingRank: { op: '<=', value: 5 }, last30BL: { op: '<=', value: 5 } } }
+  },
+
+  // Order in which ELIGIBLE MCATs fill the target slots. Tie-breaking is still subject
+  // to business confirmation, so every step can be re-ordered or switched off here.
+  // optedStatus: 'preferred' = matches the scenario's preference (non-opted for >3, opted for ≤3)
+  mcatSelectionOrder: [
+    { id: 'S1', rank: 'A', optedStatus: 'preferred', enabled: true,  label: 'A-rank, scenario preference' },
+    { id: 'S2', rank: 'B', optedStatus: 'preferred', enabled: true,  label: 'B-rank fallback, scenario preference' },
+    { id: 'S3', rank: 'B', optedStatus: 'other',     enabled: true,  label: 'B-rank fallback, other' },
+    { id: 'S4', rank: 'A', optedStatus: 'other',     enabled: false, label: 'A-rank outside scenario preference (pending business confirmation)' }
+  ],
+  mcatTieBreak: [
+    { field: 'dirListingRank', dir: 'asc' },
+    { field: 'last30BL',       dir: 'desc' },
+    { field: 'name',           dir: 'asc' }
+  ],
+
+  /* ---------- Pricing (MRP, ex-GST) ---------- */
+  tenures: {
+    '1Y':  { short: '1Y',  long: '1 Year' },
+    '2Y':  { short: '2Y',  long: '2 Years' },
+    'MYR': { short: 'MYR', long: 'Multi-Year (MYR)' }
+  },
+  services: {
+    INDIA_STAR: {
+      serviceId: 323, name: 'India Star', tab: 'OTHERS', mcatBased: false, defaultTenure: '1Y',
+      prices: { '1Y': 400000, 'MYR': 1200000 }
+    },
+    IM_STAR_PRO: {
+      serviceId: 377, name: 'IM Star Pro', tab: 'OTHERS', mcatBased: true, defaultTenure: '1Y',
+      // Differential (per-category) pricing. MYR is known only for Standard (Sale Price sheet).
+      tierPrices: {
+        '1Y':  { Standard: 66000,  Premium: 100000, Platinum: 165000 },
+        'MYR': { Standard: 165000, Premium: null,   Platinum: null }   // null = not configured yet
+      }
+    },
+    PREFERRED_STAR_PRO: {
+      serviceId: 378, name: 'Preferred Star Pro', tab: 'OTHERS', mcatBased: true, defaultTenure: '1Y',
+      tierPrices: {
+        '1Y':  { Standard: 132000, Premium: 200000, Platinum: 330000 },
+        'MYR': { Standard: 330000, Premium: null,   Platinum: null }
+      }
+    },
+    MDC: {
+      serviceId: 228, name: 'Mini Dynamic Catalog.', tab: 'MDC', mcatBased: false, defaultTenure: '1Y',
+      prices: { '1Y': 32000, '2Y': 72000, 'MYR': 90000 }
+    },
+    TRUSTSEAL_PRO: {
+      serviceId: 384, name: 'TrustSEAL Pro', tab: 'TSP', mcatBased: false, defaultTenure: '1Y',
+      prices: { '1Y': 60000, '2Y': 90000, 'MYR': 120000 }
+    },
+    MAXIMISER_PRO: {
+      serviceId: 383, name: 'Maximiser Pro', tab: 'MAXI', mcatBased: false, defaultTenure: '1Y',
+      prices: { '1Y': 85000, '2Y': 130000, 'MYR': 170000 }
+    }
+  },
+  serviceTabs: [
+    { id: 'MDC',    label: 'MDC' },
+    { id: 'TSP',    label: 'TrustSEAL Pro' },
+    { id: 'MAXI',   label: 'Maximiser Pro' },
+    { id: 'OTHERS', label: 'Others' }
+  ],
+
+  // Dummy offers (as seen in MERP "Apply Offer"). Cashback is informational, it does not reduce Deal Value.
+  offers: [
+    { id: 'CB10', label: '10% Cashback on 1 Lac+ Deals', type: 'cashback', pct: 10, minDeal: 100000 }
+  ]
+};
+
+</script>
+  <script>/* ---- js/data.js ---- */
+/* =====================================================================
+ * DUMMY DATA – sellers, MCATs, existing proposals and test scenarios
+ * MCAT fields: rank (A/B), opted (already in India Star), dirListingRank
+ * (seller's DIR IM listing rank in that MCAT), last30BL, priceTier.
+ * Eligibility + selection reason are COMPUTED by the MCAT engine.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+(function () {
+  const DISTRICT_POOL = {
+    GJ: ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar', 'Bhavnagar', 'Jamnagar', 'Anand', 'Mehsana', 'Bharuch',
+         'Valsad', 'Navsari', 'Kheda', 'Morbi', 'Junagadh', 'Kutch', 'Panchmahal', 'Sabarkantha'],
+    NORTH: ['New Delhi', 'Gurugram', 'Faridabad', 'Noida', 'Ghaziabad', 'Sonipat', 'Panipat', 'Karnal', 'Ludhiana', 'Jalandhar',
+            'Amritsar', 'Chandigarh', 'Mohali', 'Jaipur', 'Alwar', 'Meerut', 'Agra', 'Kanpur', 'Lucknow', 'Dehradun'],
+    WEST: ['Pune', 'Mumbai', 'Thane', 'Nashik', 'Aurangabad', 'Nagpur', 'Kolhapur', 'Satara', 'Raigad', 'Palghar',
+           'Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Indore', 'Bhopal', 'Jabalpur', 'Raipur', 'Hyderabad', 'Rangareddy',
+           'Bengaluru Urban', 'Mysuru', 'Belagavi', 'Hubballi-Dharwad', 'Chennai', 'Coimbatore', 'Tiruppur', 'Madurai', 'Kochi', 'Goa North',
+           'Visakhapatnam', 'Vijayawada', 'Bhubaneswar', 'Kolkata', 'Howrah', 'Patna', 'Ranchi', 'Jamshedpur', 'Guwahati', 'Solapur']
+  };
+
+  const m = (id, name, rank, opted, dirListingRank, last30BL, priceTier) =>
+    ({ id, name, rank, opted, dirListingRank, last30BL, priceTier });
+
+  const SELLERS = {
+    ABCD: {
+      glid: '249097415', name: 'ABCD Enterprises', contactName: 'Mr. Anil Bansal', city: 'Ahmedabad',
+      currentService: { serviceKey: 'INDIA_STAR', tenure: '1Y' },
+      metrics: { blDau: 45, pnsSuccess: 78, totalARank: 8, optedARank: 5, preferredDistricts: 10 },
+      districtPool: 'GJ',
+      mcats: [
+        m('M101', 'Submersible Pumps',  'A', true,  1, 12, 'Premium'),
+        m('M102', 'Centrifugal Pumps',  'A', true,  2, 6,  'Standard'),
+        m('M103', 'Monoblock Pumps',    'A', true,  3, 4,  'Standard'),
+        m('M104', 'Water Pumps',        'A', true,  6, 3,  'Standard'),
+        m('M105', 'Sewage Pumps',       'A', true,  4, 2,  'Standard'),
+        m('M106', 'Industrial Pumps',   'A', false, 3, 4,  'Standard'),
+        m('M107', 'Electric Motors',    'A', false, 2, 3,  'Premium'),
+        m('M108', 'Booster Pumps',      'A', false, 4, 8,  'Standard'),
+        m('M109', 'Industrial Valves',  'B', false, 4, 5,  'Standard'),
+        m('M110', 'Pipe Fittings',      'B', false, 5, 9,  'Standard'),
+        m('M111', 'Pressure Gauges',    'B', false, 7, 1,  'Standard'),
+        m('M112', 'Pump Controllers',   'B', false, 9, 2,  'Standard')
+      ]
+    },
+    SHARMA: {
+      glid: '249097416', name: 'Sharma Industries', contactName: 'Mr. Rakesh Sharma', city: 'Ludhiana',
+      currentService: { serviceKey: 'INDIA_STAR', tenure: '1Y' },
+      metrics: { blDau: 12, pnsSuccess: 82, totalARank: 6, optedARank: 4, preferredDistricts: 20 },
+      districtPool: 'NORTH',
+      mcats: [
+        m('M201', 'Carton Sealing Machine',  'A', true,  2, 3, 'Standard'),
+        m('M202', 'Shrink Wrapping Machine', 'A', true,  4, 6, 'Standard'),
+        m('M203', 'Band Sealer Machine',     'A', true,  1, 2, 'Standard'),
+        m('M204', 'Strapping Machine',       'A', true,  6, 1, 'Standard'),
+        m('M205', 'Pouch Packing Machine',   'A', false, 3, 2, 'Premium'),
+        m('M206', 'Labeling Machine',        'A', false, 5, 4, 'Standard'),
+        m('M207', 'Batch Coding Machine',    'B', false, 4, 3, 'Standard')
+      ]
+    },
+    METRO: {
+      glid: '249097417', name: 'Metro Engineering', contactName: 'Ms. Kavita Nair', city: 'Pune',
+      currentService: { serviceKey: 'INDIA_STAR', tenure: '1Y' },
+      metrics: { blDau: 35, pnsSuccess: 55, totalARank: 7, optedARank: 3, preferredDistricts: 35 },
+      districtPool: 'WEST',
+      mcats: [
+        m('M301', 'MS Fabrication Services',  'A', true,  2, 4, 'Standard'),
+        m('M302', 'Industrial Sheds',         'A', true,  3, 2, 'Premium'),
+        m('M303', 'Steel Structures',         'A', true,  5, 6, 'Standard'),
+        m('M304', 'PEB Structures',           'A', false, 4, 3, 'Premium'),
+        m('M305', 'Industrial Storage Racks', 'A', false, 6, 2, 'Standard'),
+        m('M306', 'Mezzanine Floors',         'A', false, 2, 7, 'Standard'),
+        m('M307', 'Storage Tanks',            'A', false, 8, 1, 'Standard'),
+        m('M308', 'Cable Trays',              'B', false, 3, 2, 'Standard')
+      ]
+    },
+    GLOBAL: {
+      glid: '249097418', name: 'Global Pumps', contactName: 'Mr. Suresh Iyer', city: 'Coimbatore',
+      currentService: { serviceKey: 'INDIA_STAR', tenure: '1Y' },
+      metrics: { blDau: 40, pnsSuccess: 75, totalARank: 0, optedARank: 0, preferredDistricts: 10 },
+      districtPool: 'WEST',
+      mcats: [
+        m('M401', 'Domestic Water Pumps', 'B', true,  6, 3, 'Standard'),
+        m('M402', 'Pump Impellers',       'B', true,  4, 2, 'Standard'),
+        m('M403', 'Mechanical Seals',     'B', false, 3, 4, 'Standard'),
+        m('M404', 'Pump Motors',          'B', false, 7, 1, 'Standard')
+      ]
+    },
+    PRIME: {
+      glid: '249097419', name: 'Prime Industrial', contactName: 'Mr. Vikram Joshi', city: 'Pune',
+      currentService: { serviceKey: 'INDIA_STAR', tenure: '1Y' },
+      metrics: { blDau: 55, pnsSuccess: 85, totalARank: 10, optedARank: 2, preferredDistricts: 40 },
+      districtPool: 'WEST',
+      mcats: [
+        m('M501', 'CNC Machines',             'A', true,  2, 4,  'Premium'),
+        m('M502', 'Lathe Machines',           'A', true,  3, 3,  'Standard'),
+        m('M503', 'VMC Machines',             'A', false, 1, 14, 'Platinum'),
+        m('M504', 'Hydraulic Press',          'A', false, 6, 2,  'Standard'),
+        m('M505', 'Milling Machines',         'A', false, 4, 9,  'Premium'),
+        m('M506', 'Drilling Machines',        'A', false, 7, 3,  'Standard'),
+        m('M507', 'Surface Grinders',         'A', false, 5, 7,  'Standard'),
+        m('M508', 'Power Press',              'A', false, 8, 1,  'Standard'),
+        m('M509', 'Sheet Bending Machine',    'A', false, 3, 11, 'Premium'),
+        m('M510', 'Lathe Chucks',             'A', false, 9, 4,  'Standard'),
+        m('M511', 'Tool Holders',             'B', false, 2, 4,  'Standard'),
+        m('M512', 'Cutting Tools',            'B', false, 5, 5,  'Standard'),
+        m('M513', 'Machine Vices',            'B', false, 6, 2,  'Standard')
+      ]
+    }
+  };
+
+  /* Scenarios: the 5 sellers, sub-divided by service / MCAT combination so every
+   * acceptance test has a live example. Overrides are applied on a copy of the seller. */
+  const SCENARIOS = [
+    { id: '1.1', sellerKey: 'ABCD',   label: 'IM Star Pro – 2 non-opted A-rank MCATs',
+      expect: 'Upsell → IM Star Pro (R2: >3 opted, districts <15) · 2 MCATs' },
+    { id: '1.2', sellerKey: 'ABCD',   label: 'A-rank insufficient → B-rank fallback',
+      expect: 'IM Star Pro · 1 A-rank + 1 B-rank MCAT',
+      mcatOverrides: { 'Electric Motors': { dirListingRank: 7 } } },
+    { id: '1.3', sellerKey: 'ABCD',   label: 'No MCAT qualifies → held for executive',
+      expect: 'IM Star Pro · MCAT recommendation on hold',
+      mcatOverrides: {
+        'Monoblock Pumps': { last30BL: 7 }, 'Sewage Pumps': { dirListingRank: 8 },
+        'Industrial Pumps': { dirListingRank: 9 }, 'Electric Motors': { last30BL: 11 },
+        'Industrial Valves': { dirListingRank: 6 }
+      } },
+    { id: '1.4', sellerKey: 'ABCD',   label: 'Districts 18 → Preferred Star Pro',
+      expect: 'Upsell → Preferred Star Pro (R1: >3 opted, districts ≥15) · BL >5 criterion',
+      metricOverrides: { preferredDistricts: 18 } },
+    { id: '2.1', sellerKey: 'SHARMA', label: 'Low BL DAU → India Star MYR',
+      expect: 'Focus on Servicing (BL DAU 12 < 20) · India Star MYR proposal' },
+    { id: '2.2', sellerKey: 'SHARMA', label: 'Already on India Star MYR → no auto proposal',
+      expect: 'Focus on Servicing · no duplicate MYR proposal',
+      currentServiceOverride: { serviceKey: 'INDIA_STAR', tenure: 'MYR' } },
+    { id: '3.1', sellerKey: 'METRO',  label: 'Low PNS success → India Star MYR',
+      expect: 'Focus on Servicing (PNS 55% ≤ 60%) · India Star MYR proposal' },
+    { id: '4.1', sellerKey: 'GLOBAL', label: 'Total A Rank = 0 → India Star MYR',
+      expect: 'Focus on Servicing (Total A Rank 0) · India Star MYR proposal' },
+    { id: '5.1', sellerKey: 'PRIME',  label: 'Preferred Star Pro – opted A + B fill',
+      expect: 'Upsell → Preferred Star Pro (R3: ≤3 opted, districts ≥30) · 2 opted A + 1 B' },
+    { id: '5.2', sellerKey: 'PRIME',  label: 'Fewer than target – only 1 MCAT qualifies',
+      expect: 'Preferred Star Pro · 1 of 3 MCATs, proposal still generated',
+      mcatOverrides: { 'Lathe Machines': { last30BL: 8 }, 'Tool Holders': { dirListingRank: 7 }, 'Cutting Tools': { last30BL: 6 } } },
+    { id: '5.3', sellerKey: 'PRIME',  label: 'Districts 25 → IM Star Pro',
+      expect: 'Upsell → IM Star Pro (R4: ≤3 opted, districts <30) · opted preference',
+      metricOverrides: { preferredDistricts: 25 } }
+  ];
+
+  function existingProposals(sellerKey) {
+    // Mirrors the current MERP proposal history (amounts are GST-inclusive, as in MERP).
+    const mk = (id, serviceKey, serviceName, tenure, mrp, date, status, extra) => Object.assign({
+      id, origin: 'existing', status, createdAt: date, scenarioId: null,
+      final: {
+        serviceKey, tenure,
+        lines: [{ kind: 'service', name: serviceName, mrp, deal: mrp }],
+        partPayment: { on: false, advance: 0, inst1Days: 30 },
+        tds: { on: false, pct: 2 },
+        discount: { on: false, offerId: null, mode: 'pct', pct: 0, amt: 0 },
+        validTill: null
+      }
+    }, extra || {});
+    return [
+      mk('4971046', 'INDIA_STAR',   'India Star',            '1Y', 400000, '2026-11-15', 'Pending'),
+      mk('4966355', 'MDC',          'Mini Dynamic Catalog.', '1Y', 32000,  '2026-11-13', 'Approved', { proforma: '4008672', pendingAmount: 37760 }),
+      mk('4967371', 'TRUSTSEAL_PRO','TrustSEAL Pro',         '1Y', 60000,  '2026-11-13', 'To be Sent'),
+      mk('4965808', 'MAXIMISER_PRO','Maximiser Pro',         '1Y', 85000,  '2026-11-13', 'To be Sent')
+    ];
+  }
+
+  UC.DATA = { SELLERS, SCENARIOS, DISTRICT_POOL, existingProposals };
+
+  /** Returns a fresh, override-applied seller object for a scenario. */
+  UC.DATA.getScenarioSeller = function (scenarioId) {
+    const sc = SCENARIOS.find(s => s.id === scenarioId);
+    if (!sc) throw new Error('Unknown scenario ' + scenarioId);
+    const s = JSON.parse(JSON.stringify(SELLERS[sc.sellerKey]));
+    s.key = sc.sellerKey;
+    s.scenarioId = sc.id;
+    Object.assign(s.metrics, sc.metricOverrides || {});
+    if (sc.currentServiceOverride) s.currentService = Object.assign({}, sc.currentServiceOverride);
+    const ov = sc.mcatOverrides || {};
+    s.mcats.forEach(mc => Object.assign(mc, ov[mc.name] || {}));
+    const pool = DISTRICT_POOL[s.districtPool];
+    s.districts = Array.from({ length: s.metrics.preferredDistricts }, (_, i) => pool[i % pool.length] + (i >= pool.length ? ' (Rural)' : ''));
+    return s;
+  };
+
+  /** Data-consistency check: MCAT list must agree with the seller's A-rank counts. */
+  UC.DATA.validate = function (seller) {
+    const a = seller.mcats.filter(x => x.rank === 'A');
+    const optedA = a.filter(x => x.opted);
+    const issues = [];
+    if (a.length !== seller.metrics.totalARank) issues.push(`Total A Rank is ${seller.metrics.totalARank} but MCAT list has ${a.length} A-rank MCATs`);
+    if (optedA.length !== seller.metrics.optedARank) issues.push(`Opted A Rank is ${seller.metrics.optedARank} but MCAT list has ${optedA.length} opted A-rank MCATs`);
+    return issues;
+  };
+})();
+
+</script>
+  <!-- 2. Business logic (no UI) -->
+  <script>/* ---- js/engine/utils.js ---- */
+/* Shared helpers – no UI, no business rules. */
+window.UC = window.UC || {};
+
+UC.Util = (function () {
+  const OPS = {
+    '<':  (a, b) => a < b,
+    '<=': (a, b) => a <= b,
+    '>':  (a, b) => a > b,
+    '>=': (a, b) => a >= b,
+    '==': (a, b) => a === b,
+    '!=': (a, b) => a !== b
+  };
+  const OP_TEXT = { '<': '<', '<=': '≤', '>': '>', '>=': '≥', '==': '=', '!=': '≠' };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function compare(value, cond) {
+    if (!OPS[cond.op]) throw new Error('Unknown operator ' + cond.op);
+    return OPS[cond.op](value, cond.value);
+  }
+  function condText(cond, unit) { return `${OP_TEXT[cond.op]} ${cond.value}${unit || ''}`; }
+
+  function inr(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    const neg = n < 0; n = Math.round(Math.abs(n));
+    const s = String(n);
+    const last3 = s.slice(-3), rest = s.slice(0, -3);
+    const out = rest ? rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + last3 : last3;
+    return (neg ? '-' : '') + '₹' + out;
+  }
+  function num(n) { return inr(n).replace('₹', ''); }
+
+  function toDate(d) { return d instanceof Date ? d : new Date(d + (String(d).length === 10 ? 'T00:00:00' : '')); }
+  function isoDate(d) {
+    d = toDate(d);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function fmtDate(d) { d = toDate(d); return `${String(d.getDate()).padStart(2, '0')}-${MONTHS[d.getMonth()]}-${d.getFullYear()}`; }
+  function fmtDateShort(d) { d = toDate(d); return `${String(d.getDate()).padStart(2, '0')}-${MONTHS[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`; }
+  function fmtDateTime(d) {
+    d = toDate(d);
+    return `${fmtDate(d)}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  function addDays(d, n) { const x = new Date(toDate(d)); x.setDate(x.getDate() + n); return x; }
+  function today() { return isoDate(new Date()); }
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  return { compare, condText, inr, num, isoDate, fmtDate, fmtDateShort, fmtDateTime, addDays, today, clone, esc, OP_TEXT };
+})();
+
+</script>
+  <script>/* ---- js/engine/recommendation-engine.js ---- */
+/* =====================================================================
+ * RECOMMENDATION ENGINE
+ * Pure function: (seller, config) -> recommendation object. No UI.
+ * Step A: servicing checks (OR). Step B/C: upsell rule table.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.RecommendationEngine = (function () {
+  const U = UC.Util;
+
+  function evaluate(seller, cfg) {
+    const mt = seller.metrics;
+    const svcName = k => (cfg.services[k] || {}).name || k;
+
+    // ---- A. First-level servicing checks ----
+    const checks = cfg.servicing.checks.map(c => {
+      const value = mt[c.metric];
+      const triggered = U.compare(value, c);
+      return {
+        id: c.id, label: c.label, metric: c.metric, value,
+        display: value + (c.unit || ''),
+        triggered,
+        servicingCondition: U.condText(c, c.unit),
+        verdict: triggered ? `Focus on Servicing (${U.condText(c, c.unit)})` : 'Eligible'
+      };
+    });
+    const triggered = checks.filter(c => c.triggered);
+    const current = seller.currentService;
+    const currentLabel = `${svcName(current.serviceKey)} ${current.tenure}`;
+
+    if (triggered.length > 0) {
+      const mapKey = `${current.serviceKey}|${current.tenure}`;
+      const map = cfg.servicing.proposalByCurrentService;
+      const proposal = Object.prototype.hasOwnProperty.call(map, mapKey) ? map[mapKey] : null;
+      const why = triggered.map(c => `${c.label} is ${c.display} (${c.servicingCondition})`).join('; ');
+      const reason = proposal
+        ? `${why}. Strengthen servicing on the current plan before any upsell. Since the seller holds ${currentLabel}, the system suggests ${svcName(proposal.serviceKey)} ${proposal.tenure} for continuity.`
+        : `${why}. Seller already holds ${currentLabel}, so no automatic renewal proposal is created (avoids a duplicate MYR recommendation). Focus on servicing.`;
+      return {
+        journey: 'SERVICING',
+        headline: 'Focus on Servicing',
+        checks, triggered,
+        ruleId: null,
+        serviceKey: proposal ? proposal.serviceKey : null,
+        tenure: proposal ? proposal.tenure : null,
+        proposalAllowed: !!proposal,
+        noProposalReason: proposal ? null : `Seller already on ${currentLabel}`,
+        emailScenario: proposal ? 'RENEWAL_MYR' : null,
+        reason,
+        scenarioCode: 'SERVICING_' + triggered.map(c => c.id).join('+'),
+        explanation: checks.map(c => `${c.label}: ${c.display} – ${c.verdict}`)
+          .concat([
+            `Opted A Rank MCATs: ${mt.optedARank}`,
+            `Preferred Districts: ${mt.preferredDistricts}`,
+            `Logic: ANY one servicing condition met → Focus on Servicing (upsell not evaluated).`
+          ])
+      };
+    }
+
+    // ---- B/C. Upsell: all checks cleared, apply rule table (first match wins) ----
+    const matches = cfg.upsellRules.filter(r =>
+      Object.keys(r.when).every(metric => U.compare(mt[metric], r.when[metric])));
+    const rule = matches[0];
+    if (!rule) {
+      return {
+        journey: 'UPSELL', headline: 'No rule matched', checks, triggered: [], ruleId: null,
+        serviceKey: null, tenure: null, proposalAllowed: false,
+        noProposalReason: 'No upsell rule matched – check configuration',
+        reason: 'No upsell rule matched – check configuration', scenarioCode: 'UPSELL_NO_RULE', explanation: []
+      };
+    }
+    const svc = cfg.services[rule.serviceKey];
+    const condLines = Object.keys(rule.when).map(k => `${k === 'optedARank' ? 'Opted A Rank MCATs' : 'Preferred Districts'} ${U.condText(rule.when[k])}`);
+    return {
+      journey: 'UPSELL',
+      headline: svc.name,
+      checks, triggered: [],
+      ruleId: rule.id,
+      matchedRules: matches.map(r => r.id),
+      serviceKey: rule.serviceKey,
+      tenure: svc.defaultTenure,
+      proposalAllowed: true,
+      noProposalReason: null,
+      emailScenario: rule.serviceKey === 'PREFERRED_STAR_PRO' ? 'UPSELL_PSP' : 'UPSELL_ISP',
+      reason: rule.reason,
+      scenarioCode: `UPSELL_${rule.id}`,
+      explanation: checks.map(c => `${c.label}: ${c.display} – Eligible`)
+        .concat([
+          `Opted A Rank MCATs: ${mt.optedARank}`,
+          `Preferred Districts: ${mt.preferredDistricts}`,
+          `Matched rule ${rule.id}: ${condLines.join(' and ')} → ${svc.name}`,
+          `Recommendation reason: ${rule.reason}`
+        ])
+    };
+  }
+
+  return { evaluate };
+})();
+
+</script>
+  <script>/* ---- js/engine/mcat-engine.js ---- */
+/* =====================================================================
+ * MCAT SELECTION ENGINE
+ * (seller, serviceKey, config) -> eligibility of every MCAT + selection.
+ * Selection order and tie-breaks come from config (still to be confirmed
+ * by business), so they can change without touching this code.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.McatEngine = (function () {
+  const U = UC.Util;
+
+  function optedBand(seller, cfg) {
+    const b = cfg.mcatOptedBand;
+    return U.compare(seller.metrics[b.metric], b) ? b.aboveKey : b.belowKey;
+  }
+
+  /** Which MCAT criteria apply for this seller + service. null for non-MCAT services. */
+  function scenarioKeyFor(seller, serviceKey, cfg) {
+    const svc = cfg.services[serviceKey];
+    if (!svc || !svc.mcatBased) return null;
+    const band = optedBand(seller, cfg);
+    const key = Object.keys(cfg.mcatScenarios).find(k => {
+      const s = cfg.mcatScenarios[k];
+      return s.band === band && s.serviceKey === serviceKey;
+    });
+    return key || null;
+  }
+
+  function sortBy(list, tieBreak) {
+    return list.slice().sort((a, b) => {
+      for (const t of tieBreak) {
+        const av = a[t.field], bv = b[t.field];
+        if (av === bv) continue;
+        const r = av < bv ? -1 : 1;
+        return t.dir === 'desc' ? -r : r;
+      }
+      return 0;
+    });
+  }
+
+  function evaluate(seller, serviceKey, cfg) {
+    const scKey = scenarioKeyFor(seller, serviceKey, cfg);
+    if (!scKey) return { applicable: false, scenarioKey: null, mcats: [], selected: [], status: 'NA' };
+    const sc = cfg.mcatScenarios[scKey];
+    const preferOpted = sc.prefer === 'opted';
+    const prefText = preferOpted ? 'opted (preferred for ≤3 opted A-rank sellers)' : 'non-opted (preferred for >3 opted A-rank sellers)';
+    const critLabels = { dirListingRank: 'DIR IM listing rank', last30BL: 'Last 30-day BL' };
+
+    // 1. Eligibility of every MCAT
+    const mcats = seller.mcats.map(mc => {
+      const fails = [], passes = [];
+      Object.keys(sc.criteria).forEach(f => {
+        const c = sc.criteria[f];
+        const ok = U.compare(mc[f], c);
+        (ok ? passes : fails).push(`${critLabels[f] || f} ${mc[f]} ${ok ? '' : 'not '}${U.condText(c)}`.replace('  ', ' '));
+      });
+      return Object.assign({}, mc, {
+        eligible: fails.length === 0,
+        preferred: mc.opted === preferOpted,
+        criteriaPass: passes, criteriaFail: fails,
+        selected: false, stepId: null, selectionReason: null,
+        eligibilityText: fails.length ? 'Not eligible – ' + fails.join('; ') : 'Eligible – ' + passes.join('; ')
+      });
+    });
+
+    // 2. Fill target slots step by step
+    const selected = [];
+    cfg.mcatSelectionOrder.forEach(step => {
+      if (!step.enabled || selected.length >= sc.targetCount) return;
+      const cands = mcats.filter(x => x.eligible && !x.selected && x.rank === step.rank &&
+        (step.optedStatus === 'preferred' ? x.preferred : !x.preferred));
+      sortBy(cands, cfg.mcatTieBreak).forEach(x => {
+        if (selected.length >= sc.targetCount) return;
+        x.selected = true; x.stepId = step.id;
+        const base = `${x.rank}-rank · ${x.opted ? 'opted' : 'non-opted'} · ${x.criteriaPass.join(' · ')}`;
+        x.selectionReason = step.rank === 'A' && step.optedStatus === 'preferred'
+          ? `${base}. Selected first: A-rank and ${prefText}.`
+          : step.rank === 'B'
+            ? `${base}. B-rank fallback – not enough eligible A-rank MCATs matching the preference.`
+            : `${base}. Selected by step ${step.id}: ${step.label}.`;
+        selected.push(x);
+      });
+    });
+
+    // 3. Explain the eligible-but-not-selected ones
+    mcats.forEach(x => {
+      if (x.eligible && !x.selected) {
+        const step = cfg.mcatSelectionOrder.find(s => s.rank === x.rank && (s.optedStatus === 'preferred' ? x.preferred : !x.preferred));
+        x.selectionReason = step && !step.enabled
+          ? `Eligible, but not auto-selected: step ${step.id} (${step.label}) is switched off. Executive can add it.`
+          : `Eligible, not auto-selected – target of ${sc.targetCount} already reached. Executive can add it.`;
+      }
+      if (!x.eligible) x.selectionReason = x.eligibilityText;
+    });
+
+    const status = selected.length === 0 ? 'HELD' : selected.length < sc.targetCount ? 'PARTIAL' : 'FULL';
+    const statusText = {
+      HELD: `No MCAT met the criteria – MCAT recommendation held for executive intervention.`,
+      PARTIAL: `Only ${selected.length} of ${sc.targetCount} target MCATs qualified – proposal generated with the available MCATs.`,
+      FULL: `${selected.length} of ${sc.targetCount} target MCATs selected.`
+    }[status];
+    return {
+      applicable: true, scenarioKey: scKey, scenario: sc, band: optedBand(seller, cfg),
+      targetCount: sc.targetCount, prefer: sc.prefer,
+      mcats, selected, status, statusText,
+      eligible: mcats.filter(x => x.eligible)
+    };
+  }
+
+  return { evaluate, scenarioKeyFor, optedBand };
+})();
+
+</script>
+  <script>/* ---- js/engine/pricing-engine.js ---- */
+/* =====================================================================
+ * PRICING ENGINE – reads price config only. MRP and Deal Value are kept
+ * separate. All MRPs are ex-GST; card "Amount" is GST-inclusive like MERP.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.PricingEngine = (function () {
+  function service(cfg, key) { return cfg.services[key]; }
+
+  function tenuresFor(cfg, key) {
+    const s = service(cfg, key);
+    if (!s) return [];
+    return Object.keys(s.mcatBased ? s.tierPrices : s.prices);
+  }
+
+  /** MRP for one line. Returns null when the price is not configured. */
+  function lineMrp(cfg, serviceKey, tenure, tier) {
+    const s = service(cfg, serviceKey);
+    if (!s) return null;
+    if (s.mcatBased) {
+      const t = (s.tierPrices[tenure] || {});
+      return t[tier] === undefined ? null : t[tier];
+    }
+    const p = s.prices[tenure];
+    return p === undefined ? null : p;
+  }
+
+  function lineTitle(cfg, final, line) {
+    const s = service(cfg, final.serviceKey);
+    const name = s ? s.name : final.serviceKey;
+    return line.kind === 'mcat' ? `${name} – ${line.name} – ${final.tenure}` : `${name} – ${final.tenure}`;
+  }
+
+  function totals(cfg, final) {
+    const lines = final.lines || [];
+    const missing = lines.some(l => l.mrp === null || l.mrp === undefined);
+    const mrpTotal = lines.reduce((a, l) => a + (l.mrp || 0), 0);
+    const dealTotal = lines.reduce((a, l) => a + (Number(l.deal) || 0), 0);
+    let discountAmt = 0;
+    const d = final.discount || {};
+    if (d.on) {
+      discountAmt = d.mode === 'amt' ? Number(d.amt) || 0 : Math.round(dealTotal * (Number(d.pct) || 0) / 100);
+      discountAmt = Math.min(Math.max(discountAmt, 0), dealTotal);
+    }
+    const netDeal = dealTotal - discountAmt;
+    const gst = Math.round(netDeal * cfg.gstRate);
+    const amountInclGst = netDeal + gst;
+    const tdsAmt = final.tds && final.tds.on ? Math.round(netDeal * (Number(final.tds.pct) || 0) / 100) : 0;
+    const payable = amountInclGst - tdsAmt;
+    const offer = d.on && d.offerId ? cfg.offers.find(o => o.id === d.offerId) : null;
+    const offerApplicable = offer ? netDeal >= (offer.minDeal || 0) : false;
+    let advance = payable, balance = 0;
+    if (final.partPayment && final.partPayment.on) {
+      advance = Math.min(Math.max(Number(final.partPayment.advance) || 0, 0), payable);
+      balance = payable - advance;
+    }
+    return { mrpTotal, dealTotal, discountAmt, netDeal, gst, amountInclGst, tdsAmt, payable, missing, offer, offerApplicable, advance, balance };
+  }
+
+  return { service, tenuresFor, lineMrp, lineTitle, totals };
+})();
+
+</script>
+  <script>/* ---- js/email/email-templates.js ---- */
+/* =====================================================================
+ * EMAIL TEMPLATE ENGINE
+ * One content module per scenario (not a name swap):
+ *   RENEWAL_MYR  – India Star 1Y → India Star MYR (tenure / continuity)
+ *   UPSELL_ISP   – India Star → IM Star Pro (product / category visibility)
+ *   UPSELL_PSP   – India Star → Preferred Star Pro (geographic reach)
+ *   GENERIC      – any other service the executive switches to
+ * Shared pieces (header, summary, CTA, signature, footer) are reused.
+ * No guaranteed enquiry / sales / ranking claims anywhere.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.EmailTemplates = (function () {
+  const U = UC.Util, P = UC.PricingEngine, e = UC.Util.esc;
+  const NAVY = '#1F2A7C', BLUE = '#2F5BEA', LIGHT = '#EEF3FF', INK = '#1E2433', MUTED = '#5B6475', LINE = '#E3E8F2';
+
+  /* ---------- scenario resolution ---------- */
+  function resolveScenario(p, seller) {
+    const k = p.final.serviceKey;
+    if (k === 'INDIA_STAR') return 'RENEWAL_MYR';
+    if (k === 'IM_STAR_PRO') return 'UPSELL_ISP';
+    if (k === 'PREFERRED_STAR_PRO') return 'UPSELL_PSP';
+    return 'GENERIC';
+  }
+
+  /* ---------- illustrations (inline SVG, brand-neutral blue) ---------- */
+  const ART = {
+    RENEWAL_MYR: `
+<svg width="200" height="130" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Multi-year calendar">
+  <rect x="18" y="22" width="110" height="92" rx="10" fill="#fff"/>
+  <rect x="18" y="22" width="110" height="24" rx="10" fill="#FFD166"/><rect x="18" y="36" width="110" height="10" fill="#FFD166"/>
+  <circle cx="42" cy="20" r="5" fill="#fff" stroke="#1F2A7C" stroke-width="3"/><circle cx="104" cy="20" r="5" fill="#fff" stroke="#1F2A7C" stroke-width="3"/>
+  ${[0,1,2,3].map(r=>[0,1,2,3,4].map(c=>`<rect x="${28+c*19}" y="${54+r*14}" width="13" height="9" rx="2" fill="${r===3&&c>2?'#2F5BEA':'#DCE5FF'}"/>`).join('')).join('')}
+  <path d="M140 92 a32 32 0 1 0 -6 -40" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+  <path d="M128 44 l8 10 l8 -12" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="172" y="78" font-family="Arial" font-size="16" font-weight="700" fill="#fff" text-anchor="middle">MYR</text>
+</svg>`,
+    UPSELL_ISP: `
+<svg width="200" height="130" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Product visibility">
+  <rect x="14" y="18" width="120" height="96" rx="10" fill="#fff"/>
+  ${[0,1].map(r=>[0,1,2].map(c=>`<rect x="${24+c*36}" y="${28+r*42}" width="28" height="34" rx="5" fill="${r===0&&c===1?'#FFD166':'#DCE5FF'}"/>`).join('')).join('')}
+  <circle cx="138" cy="66" r="30" fill="none" stroke="#fff" stroke-width="8"/>
+  <line x1="160" y1="88" x2="186" y2="114" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M124 70 l10 -10 l8 6 l12 -14" fill="none" stroke="#FFD166" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`,
+    UPSELL_PSP: `
+<svg width="200" height="130" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="District coverage map">
+  <path d="M70 8 L104 14 L122 34 L150 40 L160 62 L138 74 L128 100 L108 124 L94 106 L82 84 L58 78 L44 56 L52 30 Z" fill="#fff" opacity="0.95"/>
+  ${[[78,36],[100,48],[122,56],[90,70],[110,86],[70,58],[134,64]].map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i%3===0?13:9}" fill="#2F5BEA" opacity="0.18"/>
+  <path d="M${x} ${y+7} c-6 -7 -8 -10 -8 -14 a8 8 0 0 1 16 0 c0 4 -2 7 -8 14z" fill="${i===0?'#E8423F':'#FFD166'}"/><circle cx="${x}" cy="${y-7}" r="3" fill="#fff"/>`).join('')}
+</svg>`,
+    GENERIC: `
+<svg width="200" height="130" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Proposal document">
+  <rect x="50" y="12" width="100" height="110" rx="10" fill="#fff"/>
+  ${[0,1,2,3,4].map(i=>`<rect x="64" y="${32+i*16}" width="${i%2?56:72}" height="7" rx="3" fill="#DCE5FF"/>`).join('')}
+  <circle cx="140" cy="100" r="20" fill="#FFD166"/><path d="M131 100 l6 6 l12 -12" fill="none" stroke="#1F2A7C" stroke-width="4" stroke-linecap="round"/>
+</svg>`
+  };
+
+  /* ---------- shared building blocks ---------- */
+  const h2 = t => `<h2 style="margin:28px 0 12px;font-size:18px;line-height:1.3;color:${NAVY};font-family:Arial,Helvetica,sans-serif;">${t}</h2>`;
+  const para = t => `<p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">${t}</p>`;
+  const chip = (t, strong) => `<span style="display:inline-block;margin:0 6px 6px 0;padding:6px 12px;border-radius:16px;font-size:13px;background:${strong ? NAVY : LIGHT};color:${strong ? '#fff' : NAVY};border:1px solid ${strong ? NAVY : '#C9D6FF'};">${t}</span>`;
+
+  function featureGrid(items) {
+    return `<div class="grid" style="display:flex;flex-wrap:wrap;gap:12px;">${items.map(it => `
+      <div class="cell" style="flex:1 1 240px;box-sizing:border-box;padding:14px;border:1px solid ${LINE};border-radius:10px;background:#fff;">
+        <div style="width:34px;height:34px;border-radius:8px;background:${LIGHT};color:${BLUE};font-size:18px;line-height:34px;text-align:center;font-weight:700;">${it.icon}</div>
+        <div style="margin-top:8px;font-weight:700;font-size:14px;color:${INK};">${it.title}</div>
+        <div style="margin-top:4px;font-size:13px;line-height:1.5;color:${MUTED};">${it.text}</div>
+      </div>`).join('')}</div>`;
+  }
+
+  function header(p) {
+    return `
+    <div style="padding:18px 24px;border-bottom:3px solid ${NAVY};display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-block;width:34px;height:34px;border-radius:50%;background:#E8423F;color:#fff;font:700 20px/34px Arial;text-align:center;">M</span>
+        <span style="font:700 24px Arial;color:${NAVY};letter-spacing:-0.5px;">indiamart</span>
+      </div>
+      <span style="font-size:12px;color:${MUTED};">Proposal No. <b style="color:${INK}">${e(p.id)}</b></span>
+    </div>`;
+  }
+
+  function hero(sc, eyebrow, title, sub) {
+    return `
+    <div class="hero" style="background:linear-gradient(120deg,${NAVY} 0%,${BLUE} 100%);padding:26px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1 1 260px;">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#C9D6FF;font-weight:700;">${eyebrow}</div>
+        <div style="margin-top:8px;font:700 24px/1.25 Arial,Helvetica,sans-serif;color:#fff;">${title}</div>
+        <div style="margin-top:10px;font-size:14px;line-height:1.5;color:#E3EAFF;">${sub}</div>
+      </div>
+      <div style="flex:0 0 auto;margin:0 auto;">${ART[sc]}</div>
+    </div>`;
+  }
+
+  function summaryTable(p, seller, cfg, t) {
+    const svc = cfg.services[p.final.serviceKey];
+    const ten = cfg.tenures[p.final.tenure] ? cfg.tenures[p.final.tenure].long : p.final.tenure;
+    const rows = [];
+    const row = (k, v, bold) => rows.push(`<tr><td style="padding:9px 12px;border-bottom:1px solid ${LINE};font-size:13px;color:${MUTED};width:46%;">${k}</td><td style="padding:9px 12px;border-bottom:1px solid ${LINE};font-size:13px;color:${INK};text-align:right;${bold ? 'font-weight:700;font-size:15px;color:' + NAVY + ';' : ''}">${v}</td></tr>`);
+    row('Proposal No.', e(p.id));
+    row('Reference No.', p.refNo ? e(p.refNo) : '<i style="color:#9AA3B5">Generated on sending</i>');
+    row('Service', e(svc.name));
+    row('Tenure', e(ten));
+    const mc = p.final.lines.filter(l => l.kind === 'mcat');
+    if (mc.length) row('Categories', mc.map(l => e(l.name)).join(', '));
+    row('MRP (excl. GST)', U.inr(t.mrpTotal));
+    row('Deal Value (excl. GST)', U.inr(t.dealTotal));
+    if (t.discountAmt) { row('Special Discount', '– ' + U.inr(t.discountAmt)); row('Net Deal Value', U.inr(t.netDeal)); }
+    row(`GST (${Math.round(cfg.gstRate * 100)}%)`, U.inr(t.gst));
+    row('Proposal Amount (incl. GST)', U.inr(t.amountInclGst), true);
+    if (t.tdsAmt) { row(`TDS (${p.final.tds.pct}%)`, '– ' + U.inr(t.tdsAmt)); row('Amount Payable', U.inr(t.payable), true); }
+    if (p.final.partPayment && p.final.partPayment.on) row('Part Payment', `Advance ${U.inr(t.advance)} · Balance ${U.inr(t.balance)} within ${e(p.final.partPayment.inst1Days)} days`);
+    if (t.offer) row('Offer', e(t.offer.label) + (t.offerApplicable ? '' : ' <span style="color:#B45309">(minimum deal value not met)</span>'));
+    row('Valid Till', U.fmtDate(p.final.validTill));
+    return `<table role="presentation" style="width:100%;border-collapse:collapse;border:1px solid ${LINE};border-radius:10px;overflow:hidden;background:#fff;">${rows.join('')}</table>`;
+  }
+
+  function packageLines(p, cfg) {
+    const svc = cfg.services[p.final.serviceKey];
+    return `<table role="presentation" style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr style="background:${LIGHT};color:${NAVY};"><th style="text-align:left;padding:8px 10px;">Package</th><th style="text-align:left;padding:8px 10px;">Tier</th><th style="text-align:right;padding:8px 10px;">MRP</th><th style="text-align:right;padding:8px 10px;">Deal Value</th></tr>
+      ${p.final.lines.map(l => `<tr>
+        <td style="padding:8px 10px;border-bottom:1px solid ${LINE};">${e(svc.name)} – ${e(l.kind === 'mcat' ? l.name : '')}${l.kind === 'mcat' ? ' – ' : ''}${e(p.final.tenure)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid ${LINE};color:${MUTED};">${e(l.tier || '—')}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid ${LINE};text-align:right;">${U.inr(l.mrp)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid ${LINE};text-align:right;font-weight:700;">${U.inr(l.deal)}</td></tr>`).join('')}
+    </table>`;
+  }
+
+  function cta(p, seller, cfg) {
+    const url = `${cfg.proposalLinkBase}?glid=${seller.glid}&proposalID=${p.id}&openinwebview=1`;
+    return `
+    <div style="text-align:center;margin:26px 0 8px;">
+      <a href="${url}" data-cta="view-proposal" style="display:inline-block;background:#E8423F;color:#fff;text-decoration:none;font:700 16px Arial;padding:14px 38px;border-radius:8px;">View Proposal</a>
+      <div style="margin-top:10px;font-size:12px;color:${MUTED};word-break:break-all;">Or copy this link: <a href="${url}" data-cta="view-proposal" style="color:${BLUE};">${url}</a></div>
+    </div>`;
+  }
+
+  function signature(cfg) {
+    const x = cfg.executive;
+    return `
+    <div style="margin-top:24px;padding:16px;border-radius:10px;background:${LIGHT};display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+      <div style="width:46px;height:46px;border-radius:50%;background:${NAVY};color:#fff;font:700 18px/46px Arial;text-align:center;">${e(x.name.split(' ').map(s => s[0]).join(''))}</div>
+      <div style="flex:1 1 200px;font-size:13px;line-height:1.6;color:${INK};">
+        <div style="font-size:12px;color:${MUTED};">Your IndiaMART contact</div>
+        <b>${e(x.name)}</b> · ${e(x.designation)}<br>
+        <a href="tel:${e(x.phone)}" style="color:${BLUE};text-decoration:none;">${e(x.phone)}</a> · <a href="mailto:${e(x.email)}" style="color:${BLUE};text-decoration:none;">${e(x.email)}</a>
+      </div>
+    </div>`;
+  }
+
+  function footer(p, cfg) {
+    return `
+    <div style="margin:22px 24px 0;border:1px solid ${LINE};border-radius:8px;overflow:hidden;">
+      <div style="background:#F4F6FA;padding:8px 12px;font-weight:700;font-size:13px;color:${NAVY};">Happy to Help</div>
+      <div style="padding:10px 12px;font-size:13px;line-height:1.7;color:${INK};"><b>Email:</b> ${e(cfg.support.email)}<br><b>Call Us:</b> ${e(cfg.support.phone)}</div>
+    </div>
+    <div style="padding:16px 24px 24px;font-size:11px;line-height:1.6;color:#8A93A6;">
+      This proposal is valid till ${U.fmtDate(p.final.validTill)}. Service benefits are delivered as per the terms of the selected plan.
+      Visibility, enquiries and BuyLead volumes depend on buyer demand and are not guaranteed. Prices are in INR; GST as applicable.
+    </div>`;
+  }
+
+  /* ---------- scenario content modules ---------- */
+  const SCENARIOS = {
+    RENEWAL_MYR(p, seller, cfg, t) {
+      const isMyr = p.final.tenure === 'MYR';
+      const cur = seller.currentService;
+      const opted = seller.mcats.filter(m => m.opted).map(m => m.name);
+      const svc = cfg.services.INDIA_STAR;
+      const curTen = cfg.tenures[cur.tenure].long;
+      const comp = `
+        <table role="presentation" style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid ${LINE};">
+          <tr style="background:${LIGHT};color:${NAVY};"><th style="padding:9px 10px;text-align:left;"></th>
+            <th style="padding:9px 10px;text-align:right;">India Star 1Y<br><span style="font-weight:400;color:${MUTED}">current</span></th>
+            <th style="padding:9px 10px;text-align:right;background:${NAVY};color:#fff;">India Star ${e(p.final.tenure)}<br><span style="font-weight:400;color:#C9D6FF">proposed</span></th></tr>
+          <tr><td style="padding:9px 10px;border-top:1px solid ${LINE};color:${MUTED};">Tenure</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;">1 Year</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;font-weight:700;">${e(cfg.tenures[p.final.tenure].long)}</td></tr>
+          <tr><td style="padding:9px 10px;border-top:1px solid ${LINE};color:${MUTED};">MRP (excl. GST)</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;">${U.inr(svc.prices['1Y'])}</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;font-weight:700;">${U.inr(t.mrpTotal)}</td></tr>
+          <tr><td style="padding:9px 10px;border-top:1px solid ${LINE};color:${MUTED};">Proposed Deal Value</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;color:#9AA3B5;">—</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;font-weight:700;color:${NAVY};">${U.inr(t.netDeal)}</td></tr>
+          <tr><td style="padding:9px 10px;border-top:1px solid ${LINE};color:${MUTED};">Renewal cycle</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;">Every year</td><td style="padding:9px 10px;border-top:1px solid ${LINE};text-align:right;font-weight:700;">${isMyr ? 'Once for the full term' : 'Every year'}</td></tr>
+        </table>`;
+      return {
+        subject: isMyr
+          ? `Proposal ${p.id}: Continue India Star with a multi-year subscription – ${seller.name}`
+          : `Proposal ${p.id}: Renew your India Star subscription – ${seller.name}`,
+        hero: hero('RENEWAL_MYR', 'India Star · Subscription continuity',
+          isMyr ? 'Continue your IndiaMART journey with a longer-term subscription' : 'Continue your IndiaMART journey with India Star',
+          isMyr ? 'Keep the India Star benefits you use today running across a multi-year term, without yearly renewal cycles.'
+                : 'Renew India Star so your listing and categories continue without a break.'),
+        body: [
+          para(`Thank you for being an India Star member. Your current subscription is <b>India Star – ${e(curTen)}</b>. ${isMyr
+            ? `We have prepared a proposal to move it to a <b>Multi-Year (MYR)</b> tenure, so everything you use today continues uninterrupted.`
+            : `We have prepared a renewal proposal so your services continue uninterrupted.`}`),
+          h2('Your current subscription'),
+          `<div style="padding:14px;border:1px solid ${LINE};border-radius:10px;">
+             <div style="font-size:13px;color:${MUTED};">Plan</div><div style="font-weight:700;font-size:15px;color:${INK};margin-bottom:10px;">India Star – ${e(curTen)}</div>
+             <div style="font-size:13px;color:${MUTED};margin-bottom:6px;">Categories currently in your plan</div>
+             ${opted.length ? opted.map(n => chip(e(n))).join('') : '<span style="font-size:13px;color:' + MUTED + '">As per your current listing</span>'}
+           </div>`,
+          h2(isMyr ? 'What continues with India Star MYR' : 'What continues with your renewal'),
+          featureGrid([
+            { icon: '★', title: 'Same India Star listing', text: 'Your India Star plan and its listing benefits continue as they are today.' },
+            { icon: '◎', title: 'Your categories stay live', text: 'Categories in your plan remain active through the term, with no gap at renewal time.' },
+            { icon: '↓', title: 'BuyLead access as per plan', text: 'Continue to access BuyLeads according to your India Star plan entitlements.' },
+            { icon: '⟳', title: isMyr ? 'One proposal, multi-year term' : 'Quick renewal', text: isMyr ? 'A single agreement covers the full term – fewer renewal follow-ups for your team.' : 'Renew now and avoid a break in your subscription.' }
+          ]),
+          h2('Commercial comparison'),
+          comp
+        ]
+      };
+    },
+
+    UPSELL_ISP(p, seller, cfg, t) {
+      const lines = p.final.lines.filter(l => l.kind === 'mcat');
+      const mcatOf = id => seller.mcats.find(m => m.id === id) || {};
+      const first = lines[0] ? lines[0].name : 'your categories';
+      return {
+        subject: `Proposal ${p.id}: Upgrade to IM Star Pro for ${first}${lines.length > 1 ? ' & more' : ''} – ${seller.name}`,
+        hero: hero('UPSELL_ISP', 'Upgrade · India Star → IM Star Pro', 'Take your product visibility to the next level',
+          'Add category-level visibility for the products you most want buyers to find.'),
+        body: [
+          para(`Your India Star listing gives you a strong base on IndiaMART. Looking at how your listing is placed in specific product categories, we recommend adding <b>IM Star Pro</b> for the categories below.`),
+          `<div class="grid" style="display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:6px 0 4px;">
+             <div class="cell" style="flex:1 1 200px;padding:14px;border:1px solid ${LINE};border-radius:10px;">
+               <div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">You have today</div>
+               <div style="font-weight:700;color:${INK};margin-top:4px;">India Star – ${e(seller.currentService.tenure)}</div>
+               <div style="font-size:13px;color:${MUTED};margin-top:4px;">Listing across the categories in your plan</div></div>
+             <div style="flex:0 0 auto;align-self:center;font-size:22px;color:${BLUE};margin:0 auto;">➜</div>
+             <div class="cell" style="flex:1 1 200px;padding:14px;border-radius:10px;background:${NAVY};color:#fff;">
+               <div style="font-size:11px;color:#C9D6FF;text-transform:uppercase;letter-spacing:1px;">Add</div>
+               <div style="font-weight:700;margin-top:4px;">IM Star Pro – ${e(p.final.tenure)}</div>
+               <div style="font-size:13px;color:#E3EAFF;margin-top:4px;">Dedicated visibility in ${lines.length} recommended categor${lines.length === 1 ? 'y' : 'ies'}</div></div>
+           </div>`,
+          h2('Your recommended categories'),
+          lines.map(l => {
+            const m = mcatOf(l.mcatId);
+            return `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;border:1px solid ${LINE};border-left:4px solid ${BLUE};border-radius:8px;margin-bottom:8px;">
+              <div><div style="font-weight:700;color:${INK};font-size:15px;">${e(l.name)}</div>
+                <div style="font-size:12px;color:${MUTED};margin-top:3px;">Your current listing position: #${e(m.dirListingRank || '—')} · ${m.opted ? 'Already in your plan – strengthen it' : 'Not yet in your India Star plan'}</div></div>
+              <div style="text-align:right;font-size:12px;color:${MUTED};">${e(l.tier)} tier<br><b style="color:${NAVY};font-size:14px;">${U.inr(l.deal)}</b></div></div>`;
+          }).join(''),
+          h2('What IM Star Pro adds'),
+          featureGrid([
+            { icon: '◉', title: 'Category-level visibility', text: 'Placement within each selected category as per the IM Star Pro plan.' },
+            { icon: '↓', title: 'Category BuyLeads', text: 'Access to BuyLeads in the selected categories as per plan allocation.' },
+            { icon: '+', title: 'Works with India Star', text: 'Your India Star subscription continues unchanged – IM Star Pro is added on top.' }
+          ]),
+          h2('Package details'),
+          packageLines(p, cfg)
+        ]
+      };
+    },
+
+    UPSELL_PSP(p, seller, cfg, t) {
+      const lines = p.final.lines.filter(l => l.kind === 'mcat');
+      const d = seller.districts || [];
+      const show = d.slice(0, 12);
+      return {
+        subject: `Proposal ${p.id}: Expand your reach across ${d.length} districts with Preferred Star Pro – ${seller.name}`,
+        hero: hero('UPSELL_PSP', 'Upgrade · India Star → Preferred Star Pro', 'Expand your business reach with Preferred Star Pro',
+          'Be a preferred supplier for buyers in the districts that matter to your business.'),
+        body: [
+          para(`You have marked <b>${d.length} preferred districts</b> on IndiaMART. <b>Preferred Star Pro</b> is built for sellers who serve buyers across many locations – it adds preferred listing for your chosen categories across your preferred districts.`),
+          `<div class="grid" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:16px;border-radius:12px;background:${LIGHT};">
+             <div style="flex:0 0 130px;text-align:center;margin:0 auto;">
+               <div style="font:700 44px/1 Arial;color:${NAVY};">${d.length}</div>
+               <div style="font-size:12px;color:${MUTED};margin-top:4px;">preferred districts</div></div>
+             <div style="flex:1 1 260px;">
+               <div style="font-size:12px;color:${MUTED};margin-bottom:6px;">Your coverage includes</div>
+               ${show.map(x => chip(e(x))).join('')}${d.length > show.length ? chip(`+${d.length - show.length} more`, true) : ''}</div>
+           </div>`,
+          h2('How geographic reach works'),
+          featureGrid([
+            { icon: '1', title: 'Your districts', text: 'Your preferred districts define where you want to be seen first.' },
+            { icon: '2', title: 'Preferred listing', text: 'Buyers in those districts see you as a preferred supplier in the selected categories, as per plan.' },
+            { icon: '3', title: 'Location-aligned BuyLeads', text: 'BuyLeads from your preferred locations as per Preferred Star Pro plan allocation.' }
+          ]),
+          h2('Categories in this proposal'),
+          `<div>${lines.map(l => chip(`${e(l.name)} · ${e(l.rank)} rank`)).join('')}</div>`,
+          para(`<span style="font-size:13px;color:${MUTED};">Your India Star subscription continues unchanged – Preferred Star Pro is added on top.</span>`),
+          h2('Package details'),
+          packageLines(p, cfg)
+        ]
+      };
+    },
+
+    GENERIC(p, seller, cfg, t) {
+      const svc = cfg.services[p.final.serviceKey];
+      return {
+        subject: `Proposal (${p.id}) for IndiaMART Services – ${svc.name}`,
+        hero: hero('GENERIC', 'Your IndiaMART proposal', `Your proposal for ${e(svc.name)}`,
+          'Here are the details of the service we discussed with you.'),
+        body: [
+          para(`Thank you for your interest in IndiaMART services. Please find the details of your <b>${e(svc.name)}</b> proposal below.`),
+          h2('Package details'),
+          packageLines(p, cfg)
+        ]
+      };
+    }
+  };
+
+  /* ---------- assemble ---------- */
+  function build(p, seller, cfg) {
+    const sc = resolveScenario(p, seller);
+    const t = P.totals(cfg, p.final);
+    const c = SCENARIOS[sc](p, seller, cfg, t);
+    const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(c.subject)}</title>
+<style>
+  body{margin:0;background:#EEF2F8;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;}
+  @media (max-width:480px){ .wrap{padding:0 !important;} .hero{padding:20px 16px !important;} .inner{padding:4px 16px 0 !important;} }
+</style></head><body>
+<div class="wrap" style="padding:20px 10px;">
+  <div style="max-width:620px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(20,30,80,.08);">
+    ${header(p)}
+    ${c.hero}
+    <div class="inner" style="padding:8px 24px 0;">
+      <p style="margin:18px 0 12px;font-size:15px;color:${INK};">Dear ${e(seller.contactName)},</p>
+      ${c.body.join('\n')}
+      ${h2('Your proposal at a glance')}
+      ${summaryTable(p, seller, cfg, t)}
+      ${cta(p, seller, cfg)}
+      ${para('<span style="font-size:13px;color:' + MUTED + ';">Open the proposal to review the full terms and confirm. For any changes, simply reply to this email or call me.</span>')}
+      <p style="margin:18px 0 0;font-size:14px;color:${INK};">Warm regards,</p>
+      ${signature(cfg)}
+    </div>
+    ${footer(p, cfg)}
+  </div>
+</div></body></html>`;
+    return { scenario: sc, subject: c.subject, html };
+  }
+
+  return { build, resolveScenario };
+})();
+
+</script>
+  <script>/* ---- js/engine/proposal-service.js ---- */
+/* =====================================================================
+ * PROPOSAL SERVICE – builds proposals from recommendations, applies
+ * executive edits, simulates sending and keeps the tracking record.
+ * Every function takes the state explicitly (no DOM), so the same code
+ * drives the UI and the automated acceptance tests.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.ProposalService = (function () {
+  const U = UC.Util, P = UC.PricingEngine;
+
+  /* ---------------- state ---------------- */
+  function newState() {
+    return {
+      version: 3,
+      scenarioId: '1.1',
+      screen: 'profile',
+      history: [],
+      workspaces: {},
+      tracking: {},
+      notifications: [],
+      counters: { nextProposalId: null, refSeq: 1 },
+      editing: null,
+      viewingEmailId: null,
+      lastSentId: null,
+      filter: 'All'
+    };
+  }
+
+  function workspace(state, scenarioId) {
+    if (!state.workspaces[scenarioId]) {
+      const sc = UC.DATA.SCENARIOS.find(s => s.id === scenarioId);
+      state.workspaces[scenarioId] = {
+        proposals: UC.DATA.existingProposals(sc.sellerKey).map(p => Object.assign(p, { scenarioId })),
+        draftId: null,
+        revealed: false
+      };
+    }
+    return state.workspaces[scenarioId];
+  }
+
+  function nextProposalId(state, cfg) {
+    if (!state.counters.nextProposalId) state.counters.nextProposalId = cfg.proposalIdStart;
+    return String(state.counters.nextProposalId++);
+  }
+
+  function findProposal(state, scenarioId, id) {
+    return workspace(state, scenarioId).proposals.find(p => p.id === id) || null;
+  }
+
+  /* ---------------- line builders ---------------- */
+  function mcatLine(cfg, serviceKey, tenure, mc, source) {
+    const mrp = P.lineMrp(cfg, serviceKey, tenure, mc.priceTier);
+    return {
+      kind: 'mcat', mcatId: mc.id, name: mc.name, rank: mc.rank, opted: mc.opted, tier: mc.priceTier,
+      mrp, deal: mrp === null ? 0 : mrp,
+      reason: mc.selectionReason || '', source: source || 'system'
+    };
+  }
+  function serviceLine(cfg, serviceKey, tenure) {
+    const mrp = P.lineMrp(cfg, serviceKey, tenure);
+    return { kind: 'service', name: cfg.services[serviceKey].name, mrp, deal: mrp === null ? 0 : mrp, source: 'system' };
+  }
+
+  function blankFinal(cfg) {
+    return {
+      serviceKey: null, tenure: null, lines: [],
+      partPayment: { on: false, advance: 0, inst1Days: 30 },
+      tds: { on: false, pct: cfg.tdsDefaultPct },
+      discount: { on: false, offerId: null, mode: 'pct', pct: 0, amt: 0 },
+      validTill: U.isoDate(U.addDays(new Date(), cfg.defaultValidityDays)),
+      mcatScenarioKey: null, mcatStatus: null
+    };
+  }
+
+  /** Re-builds lines for a (possibly new) service, re-running MCAT selection. */
+  function applyService(final, seller, cfg, serviceKey, tenure) {
+    const svc = cfg.services[serviceKey];
+    final.serviceKey = serviceKey;
+    final.tenure = tenure && P.tenuresFor(cfg, serviceKey).includes(tenure) ? tenure : svc.defaultTenure;
+    if (svc.mcatBased) {
+      const res = UC.McatEngine.evaluate(seller, serviceKey, cfg);
+      final.lines = res.selected.map(mc => mcatLine(cfg, serviceKey, final.tenure, mc, 'system'));
+      final.mcatScenarioKey = res.scenarioKey;
+      final.mcatStatus = res.status;
+    } else {
+      final.lines = [serviceLine(cfg, serviceKey, final.tenure)];
+      final.mcatScenarioKey = null;
+      final.mcatStatus = null;
+    }
+    return final;
+  }
+
+  function setTenure(final, cfg, tenure) {
+    final.tenure = tenure;
+    final.lines.forEach(l => {
+      l.mrp = P.lineMrp(cfg, final.serviceKey, tenure, l.tier);
+      l.deal = l.mrp === null ? 0 : l.mrp;
+    });
+    return final;
+  }
+
+  function addMcat(final, seller, cfg, mcatId) {
+    if (final.lines.some(l => l.mcatId === mcatId)) return final;
+    const res = UC.McatEngine.evaluate(seller, final.serviceKey, cfg);
+    const mc = res.mcats.find(x => x.id === mcatId);
+    if (!mc) return final;
+    const source = mc.eligible ? 'executive' : 'executive-outside-criteria';
+    const line = mcatLine(cfg, final.serviceKey, final.tenure, mc, source);
+    line.reason = mc.eligible
+      ? `Added by executive. ${mc.eligibilityText}.`
+      : `Added by executive outside the recommendation criteria. ${mc.eligibilityText}.`;
+    final.lines.push(line);
+    return final;
+  }
+  function removeMcat(final, mcatId) {
+    final.lines = final.lines.filter(l => l.mcatId !== mcatId);
+    return final;
+  }
+
+  /* ---------------- generation ---------------- */
+  function recommendationSnapshot(seller, rec, mcatRes) {
+    return {
+      journey: rec.journey, headline: rec.headline, ruleId: rec.ruleId, scenarioCode: rec.scenarioCode,
+      serviceKey: rec.serviceKey, tenure: rec.tenure, reason: rec.reason,
+      triggeredChecks: rec.triggered.map(c => c.id),
+      mcats: mcatRes && mcatRes.applicable ? mcatRes.selected.map(x => ({ id: x.id, name: x.name, rank: x.rank, opted: x.opted })) : [],
+      mcatStatus: mcatRes && mcatRes.applicable ? mcatRes.status : null,
+      mcatScenarioKey: mcatRes && mcatRes.applicable ? mcatRes.scenarioKey : null,
+      metrics: Object.assign({}, seller.metrics),
+      currentService: Object.assign({}, seller.currentService)
+    };
+  }
+
+  /** Called when the executive taps "+": shows (and if needed generates) the recommended proposal. */
+  function revealRecommended(state, cfg, seller) {
+    const ws = workspace(state, seller.scenarioId);
+    ws.revealed = true;
+    if (ws.draftId && findProposal(state, seller.scenarioId, ws.draftId)) return findProposal(state, seller.scenarioId, ws.draftId);
+    const rec = UC.RecommendationEngine.evaluate(seller, cfg);
+    if (!rec.proposalAllowed) return null;
+    if (ws.proposals.some(p => p.origin === 'system' && p.status === 'Sent')) return null; // already sent
+    const final = applyService(blankFinal(cfg), seller, cfg, rec.serviceKey, rec.tenure);
+    const mcatRes = cfg.services[rec.serviceKey].mcatBased ? UC.McatEngine.evaluate(seller, rec.serviceKey, cfg) : null;
+    const p = {
+      id: nextProposalId(state, cfg), origin: 'system', scenarioId: seller.scenarioId, sellerGlid: seller.glid,
+      status: 'Draft', createdAt: new Date().toISOString(),
+      recommendation: recommendationSnapshot(seller, rec, mcatRes),
+      final, refNo: null, sentAt: null, email: null
+    };
+    ws.proposals.unshift(p);
+    ws.draftId = p.id;
+    track(state, cfg, seller, p);
+    return p;
+  }
+
+  function createManualDraft(state, cfg, seller) {
+    const ws = workspace(state, seller.scenarioId);
+    const rec = UC.RecommendationEngine.evaluate(seller, cfg);
+    const p = {
+      id: nextProposalId(state, cfg), origin: 'manual', scenarioId: seller.scenarioId, sellerGlid: seller.glid,
+      status: 'Draft', createdAt: new Date().toISOString(),
+      recommendation: recommendationSnapshot(seller, rec, null),
+      final: blankFinal(cfg), refNo: null, sentAt: null, email: null
+    };
+    ws.proposals.unshift(p);
+    ws.draftId = p.id;
+    ws.revealed = true;
+    track(state, cfg, seller, p);
+    return p;
+  }
+
+  function saveFinal(state, cfg, seller, proposalId, final) {
+    const p = findProposal(state, seller.scenarioId, proposalId);
+    if (!p) throw new Error('Proposal not found');
+    p.final = U.clone(final);
+    p.updatedAt = new Date().toISOString();
+    if (p.origin !== 'existing') track(state, cfg, seller, p);
+    return p;
+  }
+
+  function validate(cfg, final) {
+    const errors = [];
+    if (!final.serviceKey) errors.push('Select a service.');
+    else {
+      if (cfg.services[final.serviceKey].mcatBased && final.lines.length === 0) errors.push('Add at least one MCAT – the MCAT recommendation is on hold.');
+      if (final.lines.some(l => l.mrp === null)) errors.push(`Price not configured for ${final.tenure} on one or more MCAT tiers. Change tenure or update the price configuration.`);
+      if (final.lines.some(l => !(Number(l.deal) > 0))) errors.push('Deal Value must be greater than zero.');
+    }
+    if (!final.validTill) errors.push('Valid Till is required.');
+    return errors;
+  }
+
+  /* ---------------- sending (simulated) ---------------- */
+  function makeRefNo(state, seller) {
+    const used = new Set(Object.values(state.tracking).map(t => t.proposalRefNo).filter(Boolean));
+    let ref;
+    do {
+      const d = new Date();
+      const stamp = `${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+      const rnd = Math.random().toString(36).slice(2, 5).toUpperCase();
+      ref = `UCP-${stamp}-${seller.glid.slice(-4)}-${String(state.counters.refSeq++).padStart(4, '0')}${rnd}`;
+    } while (used.has(ref));
+    return ref;
+  }
+
+  function sendProposal(state, cfg, seller, proposalId) {
+    const p = findProposal(state, seller.scenarioId, proposalId);
+    if (!p) throw new Error('Proposal not found');
+    const errors = validate(cfg, p.final);
+    if (errors.length) return { ok: false, errors };
+    p.refNo = makeRefNo(state, seller);
+    p.sentAt = new Date().toISOString();
+    p.status = 'Sent';
+    const email = UC.EmailTemplates.build(p, seller, cfg);
+    p.email = { subject: email.subject, html: email.html, scenario: email.scenario, recipient: cfg.recipientEmail, sentAt: p.sentAt };
+    const ws = workspace(state, seller.scenarioId);
+    if (ws.draftId === p.id) ws.draftId = null;
+    track(state, cfg, seller, p);
+    state.notifications.unshift({
+      id: 'n' + Date.now(), at: p.sentAt, read: false,
+      text: `Proposal ${p.id} (${cfg.services[p.final.serviceKey].name} – ${p.final.tenure}) sent to ${cfg.recipientEmail}. Ref ${p.refNo}`
+    });
+    state.lastSentId = p.id;
+    return { ok: true, proposal: p };
+  }
+
+  /* ---------------- tracking ---------------- */
+  function track(state, cfg, seller, p) {
+    const t = P.totals(cfg, p.final);
+    const r = p.recommendation || {};
+    const finalMcats = p.final.lines.filter(l => l.kind === 'mcat').map(l => l.name);
+    const recMcats = (r.mcats || []).map(m => m.name);
+    state.tracking[p.id] = {
+      proposalId: p.id,
+      origin: p.origin,
+      scenarioId: p.scenarioId,
+      sellerGlid: seller.glid,
+      sellerName: seller.name,
+      currentService: `${seller.currentService.serviceKey} ${seller.currentService.tenure}`,
+      journey: r.journey || null,
+      ruleId: r.ruleId || null,
+      scenarioCode: r.scenarioCode || null,
+      originalRecommendedService: r.serviceKey ? `${r.serviceKey} ${r.tenure}` : null,
+      finalSelectedService: p.final.serviceKey ? `${p.final.serviceKey} ${p.final.tenure}` : null,
+      serviceOverridden: !!(r.serviceKey && p.final.serviceKey && r.serviceKey !== p.final.serviceKey),
+      tenureChanged: !!(r.tenure && p.final.tenure && r.tenure !== p.final.tenure && r.serviceKey === p.final.serviceKey),
+      recommendationReason: r.reason || null,
+      blDau: seller.metrics.blDau,
+      pnsSuccess: seller.metrics.pnsSuccess,
+      totalARank: seller.metrics.totalARank,
+      optedARankMcats: seller.metrics.optedARank,
+      preferredDistricts: seller.metrics.preferredDistricts,
+      recommendedMcats: recMcats,
+      selectedMcats: finalMcats,
+      mcatsChanged: recMcats.slice().sort().join('|') !== finalMcats.slice().sort().join('|'),
+      mcatStatus: r.mcatStatus || null,
+      mrp: t.mrpTotal,
+      dealValue: t.dealTotal,
+      discount: t.discountAmt,
+      netDealValue: t.netDeal,
+      amountInclGst: t.amountInclGst,
+      subscriptionTenure: p.final.tenure,
+      proposalRefNo: p.refNo,
+      proposalCreatedAt: p.createdAt,
+      emailStatus: p.status === 'Sent' ? 'Sent' : 'Not sent',
+      emailScenario: p.email ? p.email.scenario : null,
+      sentAt: p.sentAt,
+      approvalStatus: null   // to be filled when MERP approval / rejection is integrated
+    };
+  }
+
+  return {
+    newState, workspace, findProposal, revealRecommended, createManualDraft,
+    applyService, setTenure, addMcat, removeMcat, saveFinal, validate, sendProposal, blankFinal
+  };
+})();
+
+</script>
+  <!-- 3. UI components -->
+  <script>/* ---- js/ui/common.js ---- */
+/* Shared UI pieces: icons, MERP header, seller bar, sub-navigation, chips. */
+window.UC = window.UC || {};
+UC.UI = UC.UI || {};
+
+UC.UI.icon = {
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0112 0v6l2 2H4z"/><path d="M10 21h4"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  filter: '<svg viewBox="0 0 24 24" width="26" height="26" fill="#6B6B6B"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></svg>',
+  xcircle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>',
+  compass: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z" fill="currentColor"/></svg>'
+};
+
+UC.UI.header = function (app) {
+  const I = UC.UI.icon, st = app.state;
+  const unread = st.notifications.filter(n => !n.read).length;
+  return `
+  <header class="merp-header">
+    <button class="hbtn" data-a="back" aria-label="Back">${I.back}</button>
+    <button class="hbtn" data-a="home" aria-label="Home">${I.home}</button>
+    <div class="search">
+      <input id="seller-search" placeholder="Search" autocomplete="off" value="${UC.Util.esc(app.ui.search || '')}" aria-label="Search sellers by name or GLID">
+      ${I.search}
+      <div id="search-dd"></div>
+    </div>
+    <button class="hbtn" data-a="notif" aria-label="Notifications">${I.bell}${unread ? `<span class="badge">${unread}</span>` : ''}</button>
+  </header>
+  ${app.ui.notifOpen ? UC.UI.notifications(app) : ''}`;
+};
+
+UC.UI.searchResults = function (app) {
+  const q = (app.ui.search || '').trim().toLowerCase();
+  if (!q) return '';
+  const hits = UC.DATA.SCENARIOS.filter(sc => {
+    const s = UC.DATA.SELLERS[sc.sellerKey];
+    return s.name.toLowerCase().includes(q) || s.glid.includes(q) || sc.label.toLowerCase().includes(q);
+  });
+  return `<div class="dropdown">${hits.length ? hits.map(sc => {
+    const s = UC.DATA.SELLERS[sc.sellerKey];
+    return `<div class="dd-item" data-a="switch" data-id="${sc.id}"><b>${UC.Util.esc(s.name)}</b> (${s.glid})<small>${sc.id} · ${UC.Util.esc(sc.label)}</small></div>`;
+  }).join('') : '<div class="dd-item muted">No seller found</div>'}</div>`;
+};
+
+UC.UI.notifications = function (app) {
+  const n = app.state.notifications;
+  return `<div class="dropdown notif-pop">
+    <div class="dd-item row"><b>Notifications</b>${n.length ? '<button class="link" data-a="notif-clear">Clear all</button>' : ''}</div>
+    ${n.length ? n.map(x => `<div class="dd-item">${UC.Util.esc(x.text)}<small>${UC.Util.fmtDateTime(x.at)}</small></div>`).join('')
+      : '<div class="dd-item muted">No notifications yet. Sent proposals will appear here.</div>'}
+  </div>`;
+};
+
+UC.UI.sellerBar = function (seller) {
+  return `<div class="seller-bar"><div class="nm">${UC.Util.esc(seller.name)} <span>(${seller.glid})</span></div></div>`;
+};
+
+UC.UI.subnav = function (screen) {
+  return `<nav class="subnav">
+    <button class="${screen === 'profile' ? 'on' : ''}" data-a="go" data-to="profile">Seller Profile</button>
+    <button class="${screen === 'proposals' ? 'on' : ''}" data-a="go" data-to="proposals">Proposals</button>
+  </nav>`;
+};
+
+UC.UI.mcatChip = function (l, opts) {
+  opts = opts || {};
+  const ext = l.source === 'executive-outside-criteria';
+  return `<span class="chip ${ext ? 'ext' : ''}" title="${UC.Util.esc(l.reason || '')}">${UC.Util.esc(l.name)} <span class="rk ${l.rank}">${l.rank}</span>${opts.removable ? `<button data-a="mcat-remove" data-id="${l.mcatId || l.id}" aria-label="Remove ${UC.Util.esc(l.name)}">×</button>` : ''}</span>`;
+};
+
+UC.UI.statusClass = s => 'status-' + String(s).replace(/\s/g, '');
+
+</script>
+  <script>/* ---- js/ui/seller-profile.js ---- */
+/* SellerProfile – metrics, Upsell Compass summary, "Why this recommendation?", MCAT evaluation. */
+window.UC = window.UC || {};
+UC.UI = UC.UI || {};
+
+UC.UI.SellerProfile = function (app) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg;
+  const { seller, rec, mcatRes } = app.ctx();
+  const mt = seller.metrics;
+  const trig = new Set(rec.triggered.map(c => c.metric));
+  const cur = seller.currentService;
+  const issues = UC.DATA.validate(seller);
+
+  const tile = (metric, v, label) => `<div class="metric ${trig.has(metric) ? 'bad' : ''}"><div class="v">${v}</div><div class="l">${label}</div></div>`;
+
+  // preview of the proposal the system would generate
+  let preview = '';
+  if (rec.proposalAllowed) {
+    const f = UC.ProposalService.applyService(UC.ProposalService.blankFinal(cfg), seller, cfg, rec.serviceKey, rec.tenure);
+    const t = UC.PricingEngine.totals(cfg, f);
+    const n = f.lines.filter(l => l.kind === 'mcat').length;
+    preview = `Suggested proposal: <b>${e(cfg.services[rec.serviceKey].name)} – ${e(rec.tenure)}</b>${cfg.services[rec.serviceKey].mcatBased ? ` · ${n} MCAT${n === 1 ? '' : 's'}` : ''}${t.amountInclGst ? ` · ${U.inr(t.amountInclGst)} incl. GST` : ''}`;
+  } else {
+    preview = e(rec.noProposalReason || '') + ' – no automatic proposal.';
+  }
+
+  const servicing = rec.journey === 'SERVICING';
+  const checksHtml = rec.checks.map(c => `<div class="chk"><span class="ic ${c.triggered ? 'bad' : 'ok'}">${c.triggered ? '!' : '✓'}</span>
+      <span><b>${e(c.label)}:</b> ${e(c.display)} – ${c.triggered ? `<span style="color:var(--red)">${e(c.verdict)}</span>` : 'Eligible'}</span></div>`).join('');
+  const extra = rec.explanation.filter(x => !rec.checks.some(c => x.startsWith(c.label)));
+  const extraHtml = extra.map(x => `<div class="chk"><span class="ic info">i</span><span>${e(x)}</span></div>`).join('');
+
+  let mcatBlock = '';
+  if (mcatRes && mcatRes.applicable) {
+    const pill = { FULL: '<span class="pill ok">Target met</span>', PARTIAL: '<span class="pill warn">Fewer than target</span>', HELD: '<span class="pill red">On hold</span>' }[mcatRes.status];
+    mcatBlock = `
+      <div class="row" style="margin-top:14px;"><b>Recommended MCATs</b>${pill}</div>
+      <div class="small muted" style="margin:4px 0 8px;">${e(mcatRes.scenario.label)} · target ${mcatRes.targetCount} · prefer ${mcatRes.prefer === 'opted' ? 'opted' : 'non-opted'} MCATs</div>
+      ${mcatRes.selected.length ? mcatRes.selected.map(x => `<div>${UC.UI.mcatChip({ name: x.name, rank: x.rank, id: x.id, reason: x.selectionReason })}<div class="mcat-reason">${e(x.selectionReason)}</div></div>`).join('')
+        : `<div class="hold">${e(mcatRes.statusText)}</div>`}
+      ${mcatRes.status === 'PARTIAL' ? `<div class="hold">${e(mcatRes.statusText)}</div>` : ''}`;
+  }
+
+  const evalTable = mcatRes && mcatRes.applicable ? `
+    <details class="why"><summary>MCAT evaluation (${mcatRes.mcats.length} MCATs)</summary><div class="content">
+      <div class="small muted" style="margin-bottom:6px;">Criteria: DIR IM listing rank ${U.condText(mcatRes.scenario.criteria.dirListingRank)} and last 30-day BL ${U.condText(mcatRes.scenario.criteria.last30BL)}</div>
+      <table class="eval"><tr><th>MCAT</th><th>Rank</th><th>Opted</th><th>DIR</th><th>BL</th><th>Result</th></tr>
+      ${mcatRes.mcats.map(x => `<tr class="${x.selected ? 'sel' : x.eligible ? '' : 'no'}" title="${e(x.selectionReason)}">
+        <td>${e(x.name)}</td><td>${x.rank}</td><td>${x.opted ? 'Yes' : 'No'}</td><td>${x.dirListingRank}</td><td>${x.last30BL}</td>
+        <td>${x.selected ? '<b style="color:var(--blue)">Selected</b>' : x.eligible ? 'Eligible' : 'Not eligible'}</td></tr>`).join('')}
+      </table>
+      <div class="small muted" style="margin-top:6px;">Tap and hold (or hover) a row to see the reason. Selection order: ${cfg.mcatSelectionOrder.filter(s => s.enabled).map(s => s.id + ' ' + s.label).join(' → ')}</div>
+    </div></details>` : '';
+
+  return `
+  <div class="pad">
+    ${issues.length ? `<div class="err"><b>Data check:</b> ${issues.map(e).join('; ')}</div>` : ''}
+    <div class="svc-line"><span class="muted">Current service</span><b>${e(cfg.services[cur.serviceKey].name)} – ${e(cur.tenure)}</b></div>
+    <div class="metrics">
+      ${tile('blDau', mt.blDau, 'BL DAU (30d)')}
+      ${tile('pnsSuccess', mt.pnsSuccess + '%', 'PNS Success')}
+      ${tile('totalARank', mt.totalARank, 'Total A Rank')}
+      ${tile('optedARank', mt.optedARank, 'Opted A Rank MCATs')}
+      ${tile('preferredDistricts', mt.preferredDistricts, 'Preferred Districts')}
+      ${tile('mcats', seller.mcats.length, 'MCATs mapped')}
+    </div>
+
+    <div class="compass ${servicing ? 'servicing' : ''}">
+      <div class="top">
+        <div class="eyebrow">${UC.UI.icon.compass} Upsell Compass</div>
+        <div class="rec">${e(rec.headline)}</div>
+        <div class="sub">${preview}</div>
+      </div>
+      <div class="body">
+        <div class="reason">${e(rec.reason)}</div>
+        ${mcatBlock}
+      </div>
+      <details class="why"><summary>Why this recommendation?</summary><div class="content">
+        <div class="small muted" style="margin-bottom:4px;">Step 1 – Servicing checks (any one → Focus on Servicing)</div>
+        ${checksHtml}
+        <div class="small muted" style="margin:10px 0 4px;">Step 2 – ${servicing ? 'Outcome' : 'Upsell rule'}</div>
+        ${extraHtml}
+      </div></details>
+      ${evalTable}
+    </div>
+
+    <button class="btn solid block" data-a="go" data-to="proposals">Open Proposals</button>
+    <div class="small muted" style="text-align:center;margin-top:8px;">Tap the <b style="color:var(--red)">+</b> button on Proposals to see the recommended proposal.</div>
+  </div>`;
+};
+
+</script>
+  <script>/* ---- js/ui/proposals.js ---- */
+/* RecommendedProposalCard + ProposalHistory (MERP proposal listing). */
+window.UC = window.UC || {};
+UC.UI = UC.UI || {};
+
+UC.UI.RecommendedProposalCard = function (app, p, seller) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg;
+  const svc = p.final.serviceKey ? cfg.services[p.final.serviceKey] : null;
+  const t = UC.PricingEngine.totals(cfg, p.final);
+  const mcats = p.final.lines.filter(l => l.kind === 'mcat');
+  const held = svc && svc.mcatBased && mcats.length === 0;
+  const changed = p.recommendation && p.recommendation.serviceKey && p.final.serviceKey !== p.recommendation.serviceKey;
+  return `
+  <div class="pcard recommended">
+    <div class="row" style="margin-bottom:8px;">
+      ${p.origin === 'system' ? '<span class="pill sys">★ System Recommended</span>' : '<span class="pill grey">Manual draft</span>'}
+      ${changed ? '<span class="pill warn">Edited by executive</span>' : ''}
+    </div>
+    <div style="font-weight:600;">${e(seller.name)}</div>
+    <div class="l1" style="margin-top:6px;"><span><span class="id">${e(p.id)}</span> (${svc ? e(svc.name) + ' – ' + e(p.final.tenure) : 'Service not selected'})</span><span>${U.fmtDate(p.createdAt)}</span></div>
+    <div class="l2"><span>Amount: <span class="amt">${svc && !t.missing ? U.inr(t.amountInclGst) : '—'}</span></span><span class="small" style="align-self:flex-end;">${svc ? 'incl. GST' : ''}</span></div>
+    ${mcats.length ? `<div class="chips" style="margin-top:10px;">${mcats.map(l => UC.UI.mcatChip(l)).join('')}</div>` : ''}
+    ${held ? `<div class="hold"><b>MCAT recommendation on hold.</b> No MCAT met the criteria for ${e(svc.name)}. Edit the proposal to add MCATs manually or change the service.</div>` : ''}
+    ${t.missing ? `<div class="hold">Price is not configured for one of the MCAT tiers at ${e(p.final.tenure)}. Edit to change tenure.</div>` : ''}
+    <div class="acts">
+      <button class="btn" data-a="edit" data-id="${p.id}">Edit Proposal</button>
+      <button class="btn solid" data-a="send-preview" data-id="${p.id}">Send Proposal</button>
+    </div>
+  </div>`;
+};
+
+UC.UI.ProposalHistory = function (app, list) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg;
+  if (!list.length) return `<div class="pad muted">No proposals for this filter.</div>`;
+  return list.map(p => {
+    const svc = cfg.services[p.final.serviceKey];
+    const t = UC.PricingEngine.totals(cfg, p.final);
+    const date = p.sentAt || p.createdAt;
+    let acts = '';
+    if (p.status === 'Approved') acts = `<div class="acts"><button class="btn sm" data-a="receipt" data-id="${p.id}">Receipt</button><button class="btn sm" data-a="paylink" data-id="${p.id}">Pay Link</button></div>`;
+    else if (p.status === 'To be Sent') acts = `<div class="acts"><button class="btn sm" data-a="edit" data-id="${p.id}" style="min-width:110px">Edit</button></div>`;
+    else if (p.status === 'Sent') acts = `<div class="acts"><button class="btn sm" data-a="view-email" data-id="${p.id}">View Email</button>${p.origin === 'system' ? '<span class="pill sys" style="align-self:center">★ System Recommended</span>' : ''}</div>`;
+    return `
+    <div class="pcard">
+      <div class="l1"><span><span class="id">${e(p.id)}</span> (${e(svc ? svc.name : p.final.serviceKey)} - ${e(p.final.tenure)})</span><span>${U.fmtDateShort(date)}</span></div>
+      <div class="l2"><span>Amount: <b>${U.inr(t.amountInclGst)}</b>${p.pendingAmount ? ` | Pending: <b>${U.inr(p.pendingAmount)}</b>` : ''}</span>
+        <span>Status: <b class="${UC.UI.statusClass(p.status)}">${e(p.status)}</b></span></div>
+      ${p.proforma ? `<div class="l2"><span>Proforma: <b>${e(p.proforma)}</b></span></div>` : ''}
+      ${p.refNo ? `<div class="l2"><span class="small">Ref: <b>${e(p.refNo)}</b></span></div>` : ''}
+      ${p.status === 'Sent' && p.final.lines.some(l => l.kind === 'mcat') ? `<div class="chips" style="margin-top:8px;">${p.final.lines.filter(l => l.kind === 'mcat').map(l => UC.UI.mcatChip(l)).join('')}</div>` : ''}
+      ${acts}
+    </div>`;
+  }).join('');
+};
+
+UC.UI.ProposalsScreen = function (app) {
+  const e = UC.Util.esc, cfg = app.cfg;
+  const { seller, rec, ws } = app.ctx();
+  const drafts = ws.proposals.filter(p => p.status === 'Draft' && (p.origin === 'manual' || ws.revealed));
+  const sentSystem = ws.proposals.find(p => p.origin === 'system' && p.status === 'Sent');
+  const history = ws.proposals.filter(p => p.status !== 'Draft')
+    .filter(p => app.state.filter === 'All' || p.status === app.state.filter)
+    .sort((a, b) => String(b.sentAt || b.createdAt).localeCompare(String(a.sentAt || a.createdAt)));
+
+  let top = '';
+  if (ws.revealed || drafts.length) {
+    let inner = drafts.map(p => UC.UI.RecommendedProposalCard(app, p, seller)).join('');
+    if (ws.revealed && !drafts.some(p => p.origin === 'system')) {
+      if (!rec.proposalAllowed) {
+        inner += `<div class="pcard recommended">
+          <div class="row" style="margin-bottom:8px;"><span class="pill warn">Focus on Servicing</span></div>
+          <div style="font-weight:600;">${e(seller.name)}</div>
+          <div class="hold" style="margin-top:8px;"><b>No automatic proposal.</b> ${e(rec.reason)}</div>
+          <div class="acts"><button class="btn" data-a="dismiss-rec">Dismiss</button><button class="btn solid" data-a="manual">Create manual proposal</button></div>
+        </div>`;
+      } else if (sentSystem) {
+        inner += `<div class="pcard recommended">
+          <div class="row"><span class="pill ok">✓ Recommended proposal sent</span></div>
+          <div class="small muted" style="margin-top:8px;">Proposal ${e(sentSystem.id)} · Ref ${e(sentSystem.refNo)} – see history below.</div>
+          <div class="acts"><button class="btn" data-a="view-email" data-id="${sentSystem.id}">View Email</button><button class="btn" data-a="dismiss-rec">Dismiss</button></div>
+        </div>`;
+      }
+    }
+    top = `<div class="reveal ${app.ui.animateReveal ? '' : 'in'}" id="rec-reveal"><div><div class="rec-section">
+      <div class="hd"><b>Recommended Proposal</b><span class="small muted">${UC.Util.fmtDate(new Date())}</span></div>
+      ${inner}
+    </div></div></div>`;
+  }
+
+  const statuses = ['All', 'Sent', 'Pending', 'Approved', 'To be Sent'];
+  return `
+  <div class="section-title" style="position:relative;">
+    <h2>Proposals</h2>
+    <button class="hbtn" data-a="filter" aria-label="Filter proposals" style="color:#6B6B6B">${UC.UI.icon.filter}</button>
+    ${app.ui.filterOpen ? `<div class="filter-pop">${statuses.map(s => `<button class="${app.state.filter === s ? 'on' : ''}" data-a="set-filter" data-v="${s}">${s}</button>`).join('')}</div>` : ''}
+  </div>
+  ${top}
+  ${app.state.filter !== 'All' ? `<div class="pad small muted" style="padding-bottom:0">Filter: ${e(app.state.filter)} · <button class="link" data-a="set-filter" data-v="All">Clear</button></div>` : ''}
+  ${UC.UI.ProposalHistory(app, history)}
+  <div class="list-bottom-space"></div>`;
+};
+
+</script>
+  <script>/* ---- js/ui/proposal-editor.js ---- */
+/* ProposalEditor – mirrors the MERP "Others" proposal form. Works on a copy
+ * (app.state.editing.final) until the executive taps Update. */
+window.UC = window.UC || {};
+UC.UI = UC.UI || {};
+
+UC.UI.ProposalEditor = function (app) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg, P = UC.PricingEngine;
+  const ed = app.state.editing;
+  const { seller } = app.ctx();
+  const p = UC.ProposalService.findProposal(app.state, ed.scenarioId, ed.proposalId);
+  const f = ed.final;
+  const svc = f.serviceKey ? cfg.services[f.serviceKey] : null;
+  const rec = p.recommendation || {};
+  const tabId = ed.tab || (svc ? svc.tab : 'OTHERS');
+  const isExisting = p.origin === 'existing';
+
+  const tabs = `<div class="tabs">${cfg.serviceTabs.map(t => `<button class="${t.id === tabId ? 'on' : ''}" data-a="ed-tab" data-id="${t.id}">${e(t.label)}</button>`).join('')}</div>`;
+  const tabServices = Object.keys(cfg.services).filter(k => cfg.services[k].tab === tabId);
+  const select = `<div class="select"><select id="ed-service" aria-label="Select Service">
+      <option value="">Select Service*</option>
+      ${tabServices.map(k => `<option value="${k}" ${k === f.serviceKey ? 'selected' : ''}>${e(cfg.services[k].name)}${k === rec.serviceKey ? ' (Recommended)' : ''}</option>`).join('')}
+    </select></div>`;
+
+  let banner = '';
+  if (rec.serviceKey && !isExisting) {
+    banner += `<div class="banner sys">★ <b>System recommended:</b> ${e(cfg.services[rec.serviceKey].name)} – ${e(rec.tenure)}${rec.mcats && rec.mcats.length ? ' · ' + rec.mcats.map(m => e(m.name)).join(', ') : ''}</div>`;
+    if (f.serviceKey && f.serviceKey !== rec.serviceKey) {
+      banner += `<div class="banner chg">Service changed from <b>${e(cfg.services[rec.serviceKey].name)}</b> to <b>${e(cfg.services[f.serviceKey].name)}</b>. The original recommendation is kept for tracking – no reason needed. MCATs and email content have been updated for the new service.</div>`;
+    }
+  } else if (p.origin === 'manual') {
+    banner = `<div class="banner sys">Manual proposal${rec.headline ? ` · Upsell Compass says: <b>${e(rec.headline)}</b>` : ''}</div>`;
+  }
+
+  let card;
+  if (!svc) {
+    card = `<div class="svc-card"><div class="muted">Select a service from the tabs above to build the proposal.</div></div>`;
+  } else {
+    const tenures = P.tenuresFor(cfg, f.serviceKey);
+    const lines = f.lines;
+    let body = '';
+    if (svc.mcatBased) {
+      body += `<div class="row" style="margin-top:12px;"><b style="font-size:14px;">${rec.serviceKey === f.serviceKey ? 'Recommended MCATs' : 'Selected MCATs'}</b>
+        <button class="btn sm" data-a="mcat-add-open">+ Add MCAT</button></div>`;
+      body += lines.length ? `<div class="chips" style="margin-top:8px;">${lines.map(l => UC.UI.mcatChip(l, { removable: true })).join('')}</div>`
+        : `<div class="hold"><b>MCAT recommendation on hold.</b> No MCAT met the criteria for ${e(svc.name)}. Use “+ Add MCAT” to add one manually.</div>`;
+      body += lines.map((l, i) => `
+        <div class="line">
+          <div class="nm">${e(svc.name)} – ${e(l.name)} – ${e(f.tenure)}</div>
+          <div class="small muted">${e(l.rank)}-rank · ${l.opted ? 'opted' : 'non-opted'} · ${e(l.tier)} tier${l.source !== 'system' ? ' · <span style="color:var(--amber)">added by executive</span>' : ''}</div>
+          <div class="kv"><span class="k">Deal Value*</span><input class="inp" inputmode="numeric" data-in="deal" data-idx="${i}" value="${l.deal || ''}" aria-label="Deal value for ${e(l.name)}"><span class="k">MRP: ${l.mrp === null ? '<span style="color:var(--red)">not configured</span>' : U.num(l.mrp)}</span></div>
+          <div class="mcat-reason" style="margin-bottom:0">${e(l.reason)}</div>
+        </div>`).join('');
+    } else {
+      const l = lines[0];
+      body += `<div class="kv" style="margin-top:12px;"><span class="k">Deal Value</span><input class="inp" inputmode="numeric" data-in="deal" data-idx="0" value="${l ? l.deal : ''}" aria-label="Deal value"><span>MRP&nbsp; ${l && l.mrp !== null ? U.num(l.mrp) : '—'}</span></div>`;
+    }
+    card = `
+    <div class="svc-card">
+      <div class="t"><span>${e(svc.name)} – ${e(f.tenure)}</span><button class="xbtn" data-a="ed-clear-service" aria-label="Remove service">${UC.UI.icon.xcircle}</button></div>
+      <div class="kv"><span class="k">Subscription tenure</span>
+        <span class="stepper"><button data-a="ed-tenure" data-dir="-1" aria-label="Previous tenure">−</button><span>${e(f.tenure)}</span><button data-a="ed-tenure" data-dir="1" aria-label="Next tenure">+</button></span></div>
+      ${tenures.length > 1 ? `<div class="small muted" style="margin-top:4px;">Available: ${tenures.map(x => e(cfg.tenures[x] ? cfg.tenures[x].long : x)).join(' · ')}</div>` : ''}
+      ${body}
+      <div id="ed-totals"></div>
+    </div>`;
+  }
+
+  const sw = (key, label) => `<div class="toggle-row"><span>${label}</span><button class="sw ${f[key].on ? 'on' : ''}" data-a="ed-toggle" data-k="${key}" role="switch" aria-checked="${f[key].on}" aria-label="${label}"></button></div>`;
+  const d = f.discount;
+
+  return `
+  <div class="pad">
+    ${tabs}
+    ${tabId === 'OTHERS' ? select : ''}
+    ${banner}
+    ${card}
+    <div style="margin-top:6px;">
+      ${sw('partPayment', 'Part Payment')}
+      ${f.partPayment.on ? `<div class="sub-box">
+        <div class="kv" style="margin-top:0"><span class="k">Advance amount</span><input class="inp" inputmode="numeric" data-in="pp-adv" value="${f.partPayment.advance || ''}" aria-label="Advance amount"></div>
+        <div class="kv"><span class="k">Balance due in (days)</span><input class="inp" inputmode="numeric" data-in="pp-days" value="${f.partPayment.inst1Days}" aria-label="Balance due days"></div>
+        <div class="kv"><span class="k">Balance</span><b id="pp-bal"></b></div></div>` : ''}
+      ${sw('tds', 'TDS Deduction')}
+      ${f.tds.on ? `<div class="sub-box">
+        <div class="kv" style="margin-top:0"><span class="k">TDS %</span><input class="inp" inputmode="decimal" data-in="tds-pct" value="${f.tds.pct}" aria-label="TDS percent"></div>
+        <div class="kv"><span class="k">TDS amount (on net deal value)</span><b id="tds-amt"></b></div></div>` : ''}
+      ${sw('discount', 'Discount/Offers')}
+      ${d.on ? `<div class="sub-box">
+        <div class="small muted" style="margin-bottom:4px;">Apply Offer</div>
+        ${cfg.offers.map(o => `<label class="pick" style="padding:6px 0;border:0"><input type="checkbox" data-in="offer" data-id="${o.id}" ${d.offerId === o.id ? 'checked' : ''}><span>${e(o.label)}<div class="meta">${o.type === 'cashback' ? 'Cashback – does not change Deal Value' : ''}${o.minDeal ? ` · min. deal ${U.inr(o.minDeal)}` : ''}</div></span></label>`).join('')}
+        <div class="kv"><span class="k">Special Discount</span>
+          <span><input class="inp" style="width:60px" inputmode="decimal" placeholder="Disc%" data-in="disc-pct" value="${d.mode === 'pct' && d.pct ? d.pct : ''}" aria-label="Discount percent">
+          <span class="muted"> or </span>
+          <input class="inp" style="width:90px" inputmode="numeric" placeholder="Disc Amt" data-in="disc-amt" value="${d.mode === 'amt' && d.amt ? d.amt : ''}" aria-label="Discount amount"></span></div>
+      </div>` : ''}
+      <div class="toggle-row"><span>Valid Till*</span><input type="date" class="inp wide" data-in="valid" min="${U.today()}" value="${f.validTill || ''}" aria-label="Valid till"></div>
+    </div>
+    <div id="ed-sum"></div>
+    <div id="ed-err"></div>
+    <div class="sticky-bottom">
+      ${isExisting ? `<button class="btn solid" data-a="ed-update">Update</button>`
+        : `<button class="btn" data-a="ed-update">Update</button><button class="btn solid" data-a="ed-update-preview">Update & Preview</button>`}
+    </div>
+  </div>`;
+};
+
+/** Re-draws only the numbers (keeps focus in the input being typed into). */
+UC.UI.refreshEditorNumbers = function (app) {
+  const U = UC.Util, cfg = app.cfg, ed = app.state.editing;
+  if (!ed) return;
+  const f = ed.final, t = UC.PricingEngine.totals(cfg, f);
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  set('ed-totals', f.serviceKey ? `<div class="kv" style="margin-top:12px;border-top:1px solid #DADADA;padding-top:10px;"><span><span class="k">Deal Value</span>&nbsp; <b>${U.num(t.dealTotal)}</b></span><span>MRP&nbsp; <b>${t.missing ? '—' : U.num(t.mrpTotal)}</b></span></div>` : '');
+  set('pp-bal', U.inr(t.balance));
+  set('tds-amt', U.inr(t.tdsAmt));
+  const r = (k, v, cls) => `<div class="r ${cls || ''}"><span>${k}</span><span>${v}</span></div>`;
+  set('ed-sum', f.serviceKey ? `<div class="sum">
+    ${r('Price Total (MRP)', t.missing ? '—' : U.inr(t.mrpTotal))}
+    ${r('Deal Value', U.inr(t.dealTotal))}
+    ${t.discountAmt ? r('Special Discount', '– ' + U.inr(t.discountAmt)) : ''}
+    ${r('Net Deal Value', U.inr(t.netDeal))}
+    ${r(`GST (${Math.round(cfg.gstRate * 100)}%)`, U.inr(t.gst))}
+    ${r('Deal Amount (incl. GST)', U.inr(t.amountInclGst), 'big')}
+    ${t.tdsAmt ? r('TDS', '– ' + U.inr(t.tdsAmt)) : ''}
+    ${r('Amount Payable', U.inr(t.payable), 'big')}
+    ${f.partPayment.on ? r('Advance / Balance', `${U.inr(t.advance)} / ${U.inr(t.balance)}`) : ''}
+    ${t.offer ? r('Offer', t.offerApplicable ? UC.Util.esc(t.offer.label) : 'Offer needs min. deal ' + U.inr(t.offer.minDeal)) : ''}
+  </div>` : '');
+  const errs = ed.showErrors ? UC.ProposalService.validate(cfg, f) : [];
+  set('ed-err', errs.length ? `<div class="err">${errs.map(x => '• ' + UC.Util.esc(x)).join('<br>')}</div>` : '');
+};
+
+/** Bottom sheet for adding MCATs (eligible first; outside-criteria behind a toggle). */
+UC.UI.McatPicker = function (app) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg, ed = app.state.editing;
+  const { seller } = app.ctx();
+  const res = UC.McatEngine.evaluate(seller, ed.final.serviceKey, cfg);
+  const chosen = new Set(ed.final.lines.map(l => l.mcatId));
+  const avail = res.mcats.filter(x => !chosen.has(x.id));
+  const eligible = avail.filter(x => x.eligible), outside = avail.filter(x => !x.eligible);
+  const price = x => UC.PricingEngine.lineMrp(cfg, ed.final.serviceKey, ed.final.tenure, x.priceTier);
+  const item = (x, out) => `<label class="pick ${out ? 'out' : ''}"><input type="checkbox" data-in="pick" data-id="${x.id}">
+      <span style="flex:1"><span class="nm"><b>${e(x.name)}</b></span> <span class="chip" style="padding:1px 6px;font-size:10px"><span class="rk ${x.rank}">${x.rank}</span></span>
+      <div class="meta">${x.opted ? 'Opted' : 'Non-opted'} · DIR rank ${x.dirListingRank} · ${x.last30BL} BLs (30d) · ${e(x.priceTier)} ${price(x) === null ? '(price n/a)' : U.inr(price(x))}</div>
+      <div class="meta">${e(out ? x.eligibilityText : x.selectionReason)}</div></span></label>`;
+  return `<div class="overlay" data-a="sheet-close-bg"><div class="sheet" data-stop="1">
+    <div class="sh-hd"><span>Add MCAT · ${e(res.scenario.label)}</span><button class="xbtn" data-a="sheet-close" aria-label="Close">${UC.UI.icon.xcircle}</button></div>
+    <div class="sh-bd">
+      <div class="small muted" style="margin:6px 0;">Criteria: DIR rank ${U.condText(res.scenario.criteria.dirListingRank)} · last 30-day BL ${U.condText(res.scenario.criteria.last30BL)}</div>
+      <b>Eligible MCATs (${eligible.length})</b>
+      ${eligible.length ? eligible.map(x => item(x, false)).join('') : '<div class="muted small" style="padding:8px 0">No more eligible MCATs.</div>'}
+      <details style="margin-top:12px;"><summary class="small" style="cursor:pointer;color:var(--amber)">Outside criteria – executive override (${outside.length})</summary>
+        ${outside.map(x => item(x, true)).join('') || '<div class="muted small">None</div>'}</details>
+      <button class="btn solid block" style="margin-top:14px" data-a="mcat-add-confirm">Add selected</button>
+    </div></div></div>`;
+};
+
+</script>
+  <script>/* ---- js/ui/email-preview.js ---- */
+/* EmailPreview (before send), sent-email viewer and Proposal Sent confirmation. */
+window.UC = window.UC || {};
+UC.UI = UC.UI || {};
+
+UC.UI.EmailPreview = function (app) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg;
+  const v = app.state.viewing;
+  const { seller } = app.ctx();
+  const p = UC.ProposalService.findProposal(app.state, v.scenarioId, v.proposalId);
+  const sent = p.status === 'Sent';
+  const email = sent ? p.email : UC.EmailTemplates.build(p, seller, cfg);
+  app.ui.currentEmailHtml = email.html;
+  const errs = sent ? [] : UC.ProposalService.validate(cfg, p.final);
+  const scLabel = { RENEWAL_MYR: 'India Star → MYR (renewal)', UPSELL_ISP: 'India Star → IM Star Pro', UPSELL_PSP: 'India Star → Preferred Star Pro', GENERIC: 'Standard service proposal' }[email.scenario];
+  return `
+  <div class="pad">
+    <div class="row" style="margin-bottom:10px;">
+      <b style="font-size:17px;">${sent ? 'Sent Email' : 'Email Preview'}</b>
+      <button class="link" data-a="email-desktop">Desktop view ↗</button>
+    </div>
+    <div class="mailhead">
+      <div class="r"><span class="k">From</span><span>IndiaMART &lt;imorders@indiamart.com&gt;</span></div>
+      <div class="r"><span class="k">To</span><b>${e(sent ? p.email.recipient : cfg.recipientEmail)}</b></div>
+      <div class="r"><span class="k">Cc</span><span>${e(cfg.executive.email)}</span></div>
+      <div class="r"><span class="k">Subject</span><b>${e(email.subject)}</b></div>
+      <div class="r"><span class="k">Template</span><span class="pill sys">${e(scLabel)}</span></div>
+      ${sent ? `<div class="r"><span class="k">Status</span><span><b class="status-Sent">Sent</b> · ${U.fmtDateTime(p.sentAt)} · Ref ${e(p.refNo)}</span></div>` : ''}
+    </div>
+    ${errs.length ? `<div class="err"><b>Cannot send yet:</b><br>${errs.map(x => '• ' + e(x)).join('<br>')}</div>` : ''}
+    <iframe class="mailframe" id="mailframe" title="Email preview"></iframe>
+    <div class="sticky-bottom">
+      ${sent ? `<button class="btn" data-a="go" data-to="proposals">Back to Proposals</button>`
+        : `<button class="btn" data-a="edit" data-id="${p.id}">Edit Proposal</button>
+           <button class="btn solid" data-a="send-final" data-id="${p.id}" ${errs.length ? 'aria-disabled="true"' : ''}>Send</button>`}
+    </div>
+  </div>`;
+};
+
+UC.UI.Sending = function (app) {
+  const s = app.ui.sending;
+  const steps = ['Generating proposal reference number', 'Rendering personalised email', `Sending to ${app.cfg.recipientEmail}`];
+  return `<div class="sending"><div class="spinner"></div><b>Sending proposal…</b>
+    <div class="steps">${steps.map((x, i) => `<div class="${i < s.step ? 'done' : ''}">${i < s.step ? '✓' : '○'} ${UC.Util.esc(x)}</div>`).join('')}</div></div>`;
+};
+
+UC.UI.SentConfirmation = function (app) {
+  const U = UC.Util, e = U.esc, cfg = app.cfg;
+  const v = app.state.viewing;
+  const p = UC.ProposalService.findProposal(app.state, v.scenarioId, v.proposalId);
+  const t = UC.PricingEngine.totals(cfg, p.final);
+  const tr = app.state.tracking[p.id];
+  return `
+  <div class="pad">
+    <div class="success">
+      <div class="tick">✓</div>
+      <h2 style="margin:14px 0 4px;">Proposal sent</h2>
+      <div class="muted small">The proposal email was delivered (simulated) and added to the proposal history.</div>
+    </div>
+    <div class="kvlist">
+      <div class="r"><span class="muted">Reference No.</span><span>${e(p.refNo)}</span></div>
+      <div class="r"><span class="muted">Proposal No.</span><span>${e(p.id)}</span></div>
+      <div class="r"><span class="muted">Service</span><span>${e(cfg.services[p.final.serviceKey].name)} – ${e(p.final.tenure)}</span></div>
+      <div class="r"><span class="muted">Amount (incl. GST)</span><span>${U.inr(t.amountInclGst)}</span></div>
+      <div class="r"><span class="muted">Sent to</span><span>${e(p.email.recipient)}</span></div>
+      <div class="r"><span class="muted">Sent at</span><span>${U.fmtDateTime(p.sentAt)}</span></div>
+      <div class="r"><span class="muted">Status</span><span class="status-Sent">Sent</span></div>
+      ${tr && tr.originalRecommendedService ? `<div class="r"><span class="muted">Recommendation</span><span>${tr.serviceOverridden ? 'Overridden by executive' : 'Accepted'}</span></div>` : ''}
+    </div>
+    <button class="btn solid block" data-a="view-email" data-id="${p.id}">View Email</button>
+    <button class="btn block" style="margin-top:10px" data-a="go" data-to="proposals">Back to Proposals</button>
+  </div>`;
+};
+
+/** Writes the email HTML into the preview iframe, sizes it and intercepts CTA clicks. */
+UC.UI.mountEmailFrame = function (app, frame, html) {
+  if (!frame) return;
+  frame.onload = function () {
+    try {
+      const doc = frame.contentDocument;
+      const fit = () => { frame.style.height = (doc.documentElement.scrollHeight + 4) + 'px'; };
+      fit(); setTimeout(fit, 300);
+      doc.addEventListener('click', ev => {
+        const a = ev.target.closest('a');
+        if (!a) return;
+        ev.preventDefault();
+        if (a.dataset.cta === 'view-proposal') app.toast('In the live email this opens the seller proposal page:\n' + a.getAttribute('href'));
+        else app.toast('Link (prototype): ' + a.getAttribute('href'));
+      });
+    } catch (err) { /* cross-origin not expected for srcdoc */ }
+  };
+  frame.srcdoc = html;
+};
+
+</script>
+  <script>/* ---- js/ui/devpanel.js ---- */
+/* Development / testing panel: scenario selector, acceptance tests, tracking log, live config. */
+window.UC = window.UC || {};
+UC.UI = UC.UI || {};
+
+UC.UI.DevPanel = function (app) {
+  const e = UC.Util.esc, tab = app.ui.devTab || 'scenarios';
+  let body = '';
+
+  if (tab === 'scenarios') {
+    const groups = {};
+    UC.DATA.SCENARIOS.forEach(sc => { (groups[sc.sellerKey] = groups[sc.sellerKey] || []).push(sc); });
+    body = `<div class="small muted" style="margin-bottom:8px;">Switch directly between the 5 dummy sellers and their service / MCAT sub-scenarios. Each scenario keeps its own proposal history.</div>` +
+      Object.keys(groups).map(k => {
+        const s = UC.DATA.SELLERS[k];
+        return `<div class="sc-group"><h4>${e(s.name)} <span class="muted" style="font-weight:400">(${s.glid})</span></h4>
+          ${groups[k].map(sc => `<button class="sc-item ${app.state.scenarioId === sc.id ? 'on' : ''}" data-a="switch" data-id="${sc.id}">
+            <b>${sc.id}</b> · ${e(sc.label)}<small>Expected: ${e(sc.expect)}</small></button>`).join('')}</div>`;
+      }).join('');
+  }
+
+  if (tab === 'tests') {
+    const res = app.ui.testResults;
+    body = `<div class="row" style="margin-bottom:10px;"><span class="small muted">Section 13 acceptance criteria + config checks, run on a sandbox copy.</span><button class="btn sm solid" data-a="run-tests">Run tests</button></div>` +
+      (res ? `<div style="margin-bottom:8px;"><b class="${res.every(r => r.pass) ? 'pass' : 'fail'}">${res.filter(r => r.pass).length} / ${res.length} passed</b></div>
+        <table class="dt"><tr><th></th><th>Test</th><th>Expected</th><th>Actual</th></tr>
+        ${res.map(r => `<tr><td class="${r.pass ? 'pass' : 'fail'}">${r.pass ? 'PASS' : 'FAIL'}</td><td><b>${r.id}</b> ${e(r.name)}</td><td>${e(r.expected)}</td><td>${e(r.actual)}</td></tr>`).join('')}</table>`
+        : '<div class="muted">Click “Run tests”.</div>');
+  }
+
+  if (tab === 'tracking') {
+    const rows = Object.values(app.state.tracking);
+    const sent = rows.filter(r => r.emailStatus === 'Sent');
+    const sys = rows.filter(r => r.origin === 'system');
+    const over = sys.filter(r => r.serviceOverridden);
+    body = `<div class="kpis"><div><b>${sys.length}</b><span class="small muted">System generated</span></div><div><b>${sent.length}</b><span class="small muted">Sent</span></div>
+        <div><b>${sys.length - over.length}</b><span class="small muted">Service accepted</span></div><div><b>${over.length}</b><span class="small muted">Overridden</span></div></div>
+      <div class="row" style="margin-bottom:8px;"><span class="small muted">Stored per proposal in prototype state (no dashboard). Hover a row for the full record.</span>
+        <button class="btn sm" data-a="export-tracking">Export JSON</button></div>
+      ${rows.length ? `<table class="dt"><tr><th>Proposal</th><th>Seller</th><th>Recommended → Final</th><th>MCATs</th><th>Deal</th><th>Email</th></tr>
+        ${rows.map(r => `<tr title="${e(JSON.stringify(r, null, 1))}"><td>${e(r.proposalId)}<br><span class="muted">${e(r.origin)} · ${e(r.scenarioId)}</span></td>
+          <td>${e(r.sellerName)}<br><span class="muted">${e(r.sellerGlid)}</span></td>
+          <td>${e(r.originalRecommendedService || '—')}<br>→ ${e(r.finalSelectedService || '—')}${r.serviceOverridden ? ' <b style="color:var(--amber)">override</b>' : ''}</td>
+          <td>${e(r.selectedMcats.join(', ') || '—')}${r.mcatsChanged ? '<br><span class="muted">changed</span>' : ''}</td>
+          <td>${UC.Util.inr(r.netDealValue)}</td><td>${e(r.emailStatus)}${r.proposalRefNo ? '<br><span class="muted">' + e(r.proposalRefNo) + '</span>' : ''}</td></tr>`).join('')}</table>`
+        : '<div class="muted">No proposals generated yet. Tap + on the Proposals screen.</div>'}`;
+  }
+
+  if (tab === 'config') {
+    body = `<div class="small muted" style="margin-bottom:8px;">All thresholds, rule tables, MCAT selection order and prices. Edit and Apply – unsent drafts are regenerated with the new rules.</div>
+      <textarea class="cfg" id="cfg-text" spellcheck="false">${e(JSON.stringify(app.cfg, null, 2))}</textarea>
+      <div class="row" style="margin-top:8px;"><button class="btn sm" data-a="cfg-reset">Restore defaults</button><button class="btn sm solid" data-a="cfg-apply">Apply config</button></div>`;
+  }
+
+  return `
+    <div class="dp-hd"><b>🧪 Dev / Testing Panel</b>
+      <span><button class="btn sm ghost" data-a="reset-all">Reset prototype</button>
+      <button class="btn sm ghost dp-close" data-a="dev-close" style="margin-left:6px">Close</button></span></div>
+    <div class="dp-tabs">${['scenarios', 'tests', 'tracking', 'config'].map(t => `<button class="${t === tab ? 'on' : ''}" data-a="dev-tab" data-id="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
+    <div class="dp-bd">${body}</div>`;
+};
+
+</script>
+  <!-- 4. Tests + controller -->
+  <script>/* ---- js/tests.js ---- */
+/* =====================================================================
+ * ACCEPTANCE TESTS – run against the real engines + proposal service on a
+ * sandbox state (the live prototype state is not touched).
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.Tests = (function () {
+  function synth(cfg, metrics, current) {
+    const s = UC.DATA.getScenarioSeller('1.1');
+    Object.assign(s.metrics, metrics);
+    if (current) s.currentService = current;
+    return s;
+  }
+
+  function run(cfg) {
+    const R = UC.RecommendationEngine, M = UC.McatEngine, S = UC.ProposalService, P = UC.PricingEngine;
+    const out = [];
+    const t = (id, name, expected, fn) => {
+      try { const r = fn(); out.push({ id, name, expected, actual: r.actual, pass: !!r.pass }); }
+      catch (err) { out.push({ id, name, expected, actual: 'Error: ' + err.message, pass: false }); }
+    };
+    const base = { blDau: 45, pnsSuccess: 78, totalARank: 8, optedARank: 5, preferredDistricts: 10 };
+    const svcOf = r => r.journey === 'SERVICING' ? 'Focus on Servicing' : cfg.services[r.serviceKey].name;
+
+    t('T1', 'Seller with BL DAU below 20', 'Focus on Servicing', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { blDau: 19 })), cfg); return { actual: svcOf(r), pass: r.journey === 'SERVICING' }; });
+    t('T2', 'Seller with PNS ≤60% (boundary 60)', 'Focus on Servicing', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { pnsSuccess: 60 })), cfg); return { actual: svcOf(r), pass: r.journey === 'SERVICING' }; });
+    t('T3', 'Seller with Total A Rank = 0', 'Focus on Servicing', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { totalARank: 0 })), cfg); return { actual: svcOf(r), pass: r.journey === 'SERVICING' }; });
+    t('T4', 'Checks cleared, >3 opted, districts <15 (5, 14)', 'IM Star Pro', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { optedARank: 5, preferredDistricts: 14 })), cfg); return { actual: svcOf(r) + ' (' + r.ruleId + ')', pass: r.serviceKey === 'IM_STAR_PRO' }; });
+    t('T5', 'Checks cleared, >3 opted, districts ≥15 (4, 15)', 'Preferred Star Pro', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { optedARank: 4, preferredDistricts: 15 })), cfg); return { actual: svcOf(r) + ' (' + r.ruleId + ')', pass: r.serviceKey === 'PREFERRED_STAR_PRO' }; });
+    t('T6', 'Checks cleared, ≤3 opted, districts <30 (3, 29)', 'IM Star Pro', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { optedARank: 3, preferredDistricts: 29 })), cfg); return { actual: svcOf(r) + ' (' + r.ruleId + ')', pass: r.serviceKey === 'IM_STAR_PRO' }; });
+    t('T7', 'Checks cleared, ≤3 opted, districts ≥30 (3, 30)', 'Preferred Star Pro', () => { const r = R.evaluate(synth(cfg, Object.assign({}, base, { optedARank: 3, preferredDistricts: 30 })), cfg); return { actual: svcOf(r) + ' (' + r.ruleId + ')', pass: r.serviceKey === 'PREFERRED_STAR_PRO' }; });
+    t('T8', 'India Star 1Y + servicing', 'India Star MYR proposal', () => { const r = R.evaluate(UC.DATA.getScenarioSeller('2.1'), cfg); return { actual: r.proposalAllowed ? `${cfg.services[r.serviceKey].name} ${r.tenure} proposal` : 'No proposal', pass: r.proposalAllowed && r.serviceKey === 'INDIA_STAR' && r.tenure === 'MYR' }; });
+    t('T9', 'India Star MYR + servicing', 'No automatic MYR proposal', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('2.2');
+      const p = S.revealRecommended(st, cfg, s);
+      return { actual: p ? 'Proposal ' + p.final.serviceKey + ' ' + p.final.tenure : 'No proposal generated', pass: p === null };
+    });
+    t('T10', 'Fewer than target MCATs qualify (scenario 5.2)', 'Proposal with available MCATs', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('5.2');
+      const p = S.revealRecommended(st, cfg, s);
+      const n = p.final.lines.length;
+      return { actual: `${n} of 3 MCATs · proposal ${p ? 'generated' : 'missing'}`, pass: !!p && n > 0 && n < 3 };
+    });
+    t('T11', 'A-rank MCATs insufficient (scenario 1.2)', 'B-rank fallback used', () => {
+      const r = M.evaluate(UC.DATA.getScenarioSeller('1.2'), 'IM_STAR_PRO', cfg);
+      return { actual: r.selected.map(x => x.name + ' (' + x.rank + ')').join(', '), pass: r.selected.some(x => x.rank === 'B') && r.selected.some(x => x.rank === 'A') };
+    });
+    t('T11b', 'No MCAT qualifies (scenario 1.3)', 'MCAT recommendation held', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('1.3');
+      const p = S.revealRecommended(st, cfg, s);
+      const errs = S.validate(cfg, p.final);
+      return { actual: `${p.final.lines.length} MCATs · status ${p.final.mcatStatus} · send blocked: ${errs.length > 0}`, pass: p.final.lines.length === 0 && p.final.mcatStatus === 'HELD' && errs.length > 0 };
+    });
+    t('T12', 'Executive changes service ISP → PSP', 'Proposal + email updated, original kept', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('1.1');
+      const p = S.revealRecommended(st, cfg, s);
+      const before = UC.EmailTemplates.build(p, s, cfg);
+      const f = UC.Util.clone(p.final); S.applyService(f, s, cfg, 'PREFERRED_STAR_PRO');
+      S.saveFinal(st, cfg, s, p.id, f);
+      const after = UC.EmailTemplates.build(p, s, cfg);
+      const tr = st.tracking[p.id];
+      return { actual: `${before.scenario} → ${after.scenario}; original ${tr.originalRecommendedService}; final ${tr.finalSelectedService}; overridden ${tr.serviceOverridden}`,
+        pass: before.scenario === 'UPSELL_ISP' && after.scenario === 'UPSELL_PSP' && p.recommendation.serviceKey === 'IM_STAR_PRO' && tr.serviceOverridden };
+    });
+    t('T13', 'Executive edits commercial value', 'Final amount updated', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('1.1');
+      const p = S.revealRecommended(st, cfg, s);
+      const a0 = P.totals(cfg, p.final).amountInclGst;
+      const f = UC.Util.clone(p.final); f.lines[0].deal = 50000; f.discount = { on: true, mode: 'pct', pct: 10, amt: 0, offerId: null };
+      S.saveFinal(st, cfg, s, p.id, f);
+      const tt = P.totals(cfg, p.final);
+      const expectNet = Math.round((50000 + f.lines.slice(1).reduce((a, l) => a + l.deal, 0)) * 0.9);
+      return { actual: `${UC.Util.inr(a0)} → ${UC.Util.inr(tt.amountInclGst)} (net ${UC.Util.inr(tt.netDeal)})`, pass: tt.netDeal === expectNet && tt.amountInclGst !== a0 };
+    });
+    t('T14', 'Executive sends proposal', 'Reference no. + history updated', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('5.1');
+      const p = S.revealRecommended(st, cfg, s);
+      const r = S.sendProposal(st, cfg, s, p.id);
+      const inHist = S.workspace(st, '5.1').proposals.filter(x => x.status !== 'Draft');
+      return { actual: `${r.ok ? 'Sent' : 'Failed'} · ref ${p.refNo} · history ${inHist.length} (existing 4 kept)`, pass: r.ok && /^UCP-/.test(p.refNo) && p.status === 'Sent' && inHist.length === 5 };
+    });
+    t('T15', 'Executive views sent proposal', 'Generated email displayed', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('2.1');
+      const p = S.revealRecommended(st, cfg, s);
+      S.sendProposal(st, cfg, s, p.id);
+      return { actual: `${p.email.scenario} · "${p.email.subject.slice(0, 50)}…"`, pass: p.email.html.includes(s.name.split(' ')[0]) || p.email.html.includes(s.contactName) };
+    });
+    t('C1', 'Upsell rules mutually exclusive (grid 0–10 opted × 0–60 districts)', 'Exactly one rule per combination', () => {
+      let bad = 0;
+      for (let o = 0; o <= 10; o++) for (let d = 0; d <= 60; d++) {
+        const n = cfg.upsellRules.filter(r => Object.keys(r.when).every(k => UC.Util.compare(k === 'optedARank' ? o : d, r.when[k]))).length;
+        if (n !== 1) bad++;
+      }
+      return { actual: bad ? bad + ' combinations overlap or have no rule' : 'All 671 combinations → 1 rule', pass: bad === 0 };
+    });
+    t('C2', 'Dummy data consistency (A-rank counts)', 'MCAT lists match metrics', () => {
+      const issues = UC.DATA.SCENARIOS.flatMap(sc => UC.DATA.validate(UC.DATA.getScenarioSeller(sc.id)).map(x => sc.id + ': ' + x));
+      return { actual: issues.length ? issues.join('; ') : 'All scenarios consistent', pass: issues.length === 0 };
+    });
+    t('C3', 'Unconfigured price is not invented', 'Premium MYR → null', () => {
+      const v = P.lineMrp(cfg, 'IM_STAR_PRO', 'MYR', 'Premium');
+      return { actual: String(v), pass: v === null };
+    });
+    t('C4', 'Multiple MCATs combined into ONE proposal', '1 proposal, ≥2 lines', () => {
+      const st = S.newState(), s = UC.DATA.getScenarioSeller('5.1');
+      S.revealRecommended(st, cfg, s);
+      const drafts = S.workspace(st, '5.1').proposals.filter(x => x.status === 'Draft');
+      return { actual: `${drafts.length} proposal · ${drafts[0].final.lines.length} MCAT lines`, pass: drafts.length === 1 && drafts[0].final.lines.length >= 2 };
+    });
+    return out;
+  }
+  return { run };
+})();
+
+</script>
+  <script>/* ---- js/app.js ---- */
+/* =====================================================================
+ * APP CONTROLLER – state, navigation, events, persistence.
+ * Business logic lives in js/engine/*; this file only wires UI to it.
+ * ===================================================================== */
+window.UC = window.UC || {};
+
+UC.App = (function () {
+  const S = UC.ProposalService, U = UC.Util;
+  const STORE_KEY = 'uc-upsell-compass-proto';
+
+  const app = {
+    cfg: null, state: null,
+    ui: { search: '', notifOpen: false, filterOpen: false, sheet: null, modal: null, sending: null, devTab: 'scenarios', testResults: null, animateReveal: false, desktopEmail: false }
+  };
+
+  /* ---------------- persistence (per-browser convenience only) ---------------- */
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ state: app.state, cfg: app.cfg })); } catch (e) { /* storage unavailable */ }
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d.state || d.state.version !== S.newState().version) return null;
+      return d;
+    } catch (e) { return null; }
+  }
+
+  /* ---------------- context ---------------- */
+  app.ctx = function () {
+    const seller = UC.DATA.getScenarioSeller(app.state.scenarioId);
+    const rec = UC.RecommendationEngine.evaluate(seller, app.cfg);
+    const mcatRes = rec.journey === 'UPSELL' && rec.serviceKey && app.cfg.services[rec.serviceKey].mcatBased
+      ? UC.McatEngine.evaluate(seller, rec.serviceKey, app.cfg) : null;
+    const ws = S.workspace(app.state, app.state.scenarioId);
+    return { seller, rec, mcatRes, ws };
+  };
+
+  /* ---------------- navigation ---------------- */
+  function go(to) {
+    const st = app.state;
+    if (to === 'profile') st.history = [];
+    else if (to === 'proposals') st.history = ['profile'];
+    else if (st.screen !== to) st.history.push(st.screen);
+    st.screen = to;
+    app.ui.filterOpen = false;
+  }
+  function back() {
+    const st = app.state;
+    if (app.ui.sheet || app.ui.modal) { app.ui.sheet = null; app.ui.modal = null; return; }
+    if (st.screen === 'edit' && st.editing && st.editing.dirty) {
+      app.ui.modal = { title: 'Discard changes?', html: 'Your edits to this proposal have not been saved.', actions: [{ label: 'Keep editing', a: 'modal-close' }, { label: 'Discard', a: 'discard-edit', solid: true }] };
+      return;
+    }
+    if (st.screen === 'sent') { go('proposals'); return; }
+    const prev = st.history.pop();
+    if (prev) st.screen = prev;
+    else app.toast('You are on the seller profile.');
+  }
+
+  /* ---------------- toast ---------------- */
+  let toastTimer = null;
+  app.toast = function (msg) {
+    const host = document.getElementById('toast-host');
+    host.innerHTML = `<div class="toast">${U.esc(msg).replace(/\n/g, '<br>')}</div>`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { host.innerHTML = ''; }, 3200);
+  };
+
+  /* ---------------- render ---------------- */
+  function render() {
+    const st = app.state, root = document.getElementById('app-root');
+    const prevScreen = root.dataset.screen, prevScroll = (document.getElementById('screen') || {}).scrollTop || 0;
+    const { seller } = app.ctx();
+    let content = '';
+    switch (st.screen) {
+      case 'profile': content = UC.UI.SellerProfile(app); break;
+      case 'proposals': content = UC.UI.ProposalsScreen(app); break;
+      case 'edit': content = st.editing ? UC.UI.ProposalEditor(app) : ''; break;
+      case 'preview': content = UC.UI.EmailPreview(app); break;
+      case 'sent': content = UC.UI.SentConfirmation(app); break;
+    }
+    let overlay = '';
+    if (app.ui.sheet === 'mcat') overlay = UC.UI.McatPicker(app);
+    if (app.ui.sheet === 'fab') overlay = `<div class="overlay" data-a="sheet-close-bg"><div class="sheet" data-stop="1">
+        <div class="sh-hd"><span>New proposal</span><button class="xbtn" data-a="sheet-close" aria-label="Close">${UC.UI.icon.xcircle}</button></div>
+        <div class="sh-bd"><button class="btn block" data-a="sheet-rec" style="margin-top:8px">View recommended proposal</button>
+        <button class="btn block solid" data-a="manual" style="margin-top:10px">Create manual proposal</button></div></div></div>`;
+    if (app.ui.modal) {
+      const m = app.ui.modal;
+      overlay += `<div class="overlay center" data-a="modal-close-bg"><div class="modal" data-stop="1"><b style="font-size:16px">${U.esc(m.title)}</b>
+        <div style="margin:10px 0 16px;font-size:13px;line-height:1.55;color:var(--muted)">${m.html}</div>
+        <div class="row" style="justify-content:flex-end;gap:8px">${m.actions.map(x => `<button class="btn sm ${x.solid ? 'solid' : ''}" data-a="${x.a}">${U.esc(x.label)}</button>`).join('')}</div></div></div>`;
+    }
+    if (app.ui.sending) overlay += UC.UI.Sending(app);
+
+    root.innerHTML = UC.UI.header(app) + UC.UI.sellerBar(seller) +
+      (st.screen === 'profile' || st.screen === 'proposals' ? UC.UI.subnav(st.screen) : '') +
+      `<div class="screen" id="screen">${content}</div>` +
+      (st.screen === 'proposals' ? `<button class="fab" data-a="fab" aria-label="Create proposal">${UC.UI.icon.plus}</button>` : '') +
+      overlay;
+    root.dataset.screen = st.screen;
+
+    const scr = document.getElementById('screen');
+    if (prevScreen === st.screen && !app.ui.scrollTop) scr.scrollTop = prevScroll;
+    app.ui.scrollTop = false;
+    if (st.screen === 'edit') UC.UI.refreshEditorNumbers(app);
+    if (st.screen === 'preview') UC.UI.mountEmailFrame(app, document.getElementById('mailframe'), app.ui.currentEmailHtml);
+    if (app.ui.animateReveal) {
+      app.ui.animateReveal = false;
+      requestAnimationFrame(() => requestAnimationFrame(() => { const r = document.getElementById('rec-reveal'); if (r) r.classList.add('in'); }));
+    }
+    renderDev();
+    save();
+  }
+
+  function renderDev() {
+    const dp = document.getElementById('devpanel');
+    const ta = document.getElementById('cfg-text');
+    if (ta && document.activeElement === ta) return; // don't wipe config being edited
+    dp.innerHTML = UC.UI.DevPanel(app);
+  }
+
+  function renderDesktopEmail() {
+    const host = document.getElementById('big-host');
+    if (!app.ui.desktopEmail) { host.innerHTML = ''; return; }
+    host.innerHTML = `<div class="big-modal"><div class="bar"><b>Desktop email preview</b><button class="btn sm solid" data-a="email-desktop-close">Close</button></div><iframe id="bigframe" title="Desktop email preview"></iframe></div>`;
+    UC.UI.mountEmailFrame(app, document.getElementById('bigframe'), app.ui.currentEmailHtml);
+  }
+
+  /* ---------------- editor helpers ---------------- */
+  function seller() { return UC.DATA.getScenarioSeller(app.state.scenarioId); }
+  function openEditor(id) {
+    const p = S.findProposal(app.state, app.state.scenarioId, id);
+    const svc = p.final.serviceKey ? app.cfg.services[p.final.serviceKey] : null;
+    app.state.editing = { scenarioId: app.state.scenarioId, proposalId: id, final: U.clone(p.final), tab: svc ? svc.tab : 'OTHERS', dirty: false, showErrors: false };
+    go('edit');
+  }
+  function edited() { app.state.editing.dirty = true; }
+  function commitEdit(thenPreview) {
+    const ed = app.state.editing;
+    const errs = S.validate(app.cfg, ed.final);
+    ed.showErrors = true;
+    if (errs.length) { UC.UI.refreshEditorNumbers(app); app.toast(errs[0]); return; }
+    S.saveFinal(app.state, app.cfg, seller(), ed.proposalId, ed.final);
+    const id = ed.proposalId;
+    app.state.editing = null;
+    if (thenPreview) {
+      app.state.viewing = { scenarioId: app.state.scenarioId, proposalId: id };
+      app.state.history = ['profile', 'proposals'];
+      app.state.screen = 'preview';
+    } else {
+      go('proposals');
+      app.toast('Proposal updated');
+    }
+  }
+
+  function startSending(id) {
+    const p = S.findProposal(app.state, app.state.scenarioId, id);
+    const errs = S.validate(app.cfg, p.final);
+    if (errs.length) { app.toast(errs[0]); return; }
+    app.ui.sending = { step: 0 };
+    render();
+    const tick = (step, delay) => setTimeout(() => { app.ui.sending.step = step; render(); }, delay);
+    tick(1, 550); tick(2, 1100); tick(3, 1650);
+    setTimeout(() => {
+      const res = S.sendProposal(app.state, app.cfg, seller(), id);
+      app.ui.sending = null;
+      if (!res.ok) { app.toast(res.errors[0]); render(); return; }
+      app.state.viewing = { scenarioId: app.state.scenarioId, proposalId: id };
+      app.state.history = ['profile', 'proposals'];
+      app.state.screen = 'sent';
+      app.ui.scrollTop = true;
+      render();
+    }, 2100);
+  }
+
+  /* ---------------- click actions ---------------- */
+  const A = {
+    back() { back(); },
+    home() { app.state.editing = null; go('profile'); },
+    notif() { app.ui.notifOpen = !app.ui.notifOpen; if (app.ui.notifOpen) setTimeout(() => { app.state.notifications.forEach(n => { n.read = true; }); save(); }, 0); },
+    'notif-clear'() { app.state.notifications = []; },
+    switch(el) {
+      app.state.scenarioId = el.dataset.id;
+      app.state.screen = 'profile'; app.state.history = []; app.state.editing = null;
+      app.ui.search = ''; app.ui.sheet = null; app.ui.modal = null; app.ui.notifOpen = false; app.ui.scrollTop = true;
+      document.getElementById('devpanel').classList.remove('open-mobile');
+      app.toast('Switched to ' + UC.DATA.SELLERS[UC.DATA.SCENARIOS.find(s => s.id === el.dataset.id).sellerKey].name + ' · scenario ' + el.dataset.id);
+    },
+    go(el) { if (app.state.screen === 'edit' && app.state.editing && app.state.editing.dirty) { back(); return; } app.state.editing = null; go(el.dataset.to); app.ui.scrollTop = true; },
+    filter() { app.ui.filterOpen = !app.ui.filterOpen; },
+    'set-filter'(el) { app.state.filter = el.dataset.v; app.ui.filterOpen = false; },
+    fab() {
+      const { ws, seller: s } = app.ctx();
+      if (!ws.revealed) {
+        const p = S.revealRecommended(app.state, app.cfg, s);
+        app.ui.animateReveal = true; app.ui.scrollTop = true;
+        app.toast(p ? 'Recommended proposal generated' : 'No automatic proposal for this seller');
+      } else app.ui.sheet = 'fab';
+    },
+    'sheet-rec'() {
+      const { seller: s } = app.ctx();
+      S.revealRecommended(app.state, app.cfg, s);
+      app.ui.sheet = null; app.ui.scrollTop = true;
+    },
+    'dismiss-rec'() { S.workspace(app.state, app.state.scenarioId).revealed = false; },
+    manual() { app.ui.sheet = null; const p = S.createManualDraft(app.state, app.cfg, seller()); openEditor(p.id); },
+    edit(el) { openEditor(el.dataset.id); app.ui.scrollTop = true; },
+    'send-preview'(el) { app.state.viewing = { scenarioId: app.state.scenarioId, proposalId: el.dataset.id }; go('preview'); app.ui.scrollTop = true; },
+    'view-email'(el) { app.state.viewing = { scenarioId: app.state.scenarioId, proposalId: el.dataset.id }; go('preview'); app.ui.scrollTop = true; },
+    receipt(el) {
+      const p = S.findProposal(app.state, app.state.scenarioId, el.dataset.id);
+      app.ui.modal = { title: 'Receipt', html: `Proposal ${p.id} · Proforma ${p.proforma}<br>No payment received yet – pending ${U.inr(p.pendingAmount)}.<br><i>Dummy MERP data for this prototype.</i>`, actions: [{ label: 'Close', a: 'modal-close', solid: true }] };
+    },
+    paylink(el) {
+      const p = S.findProposal(app.state, app.state.scenarioId, el.dataset.id);
+      app.ui.modal = { title: 'Pay Link', html: `A payment link for ${U.inr(p.pendingAmount)} would be shared with the seller.<br><code style="font-size:11px">https://seller.indiamart.com/pay?proforma=${p.proforma}</code><br><i>Simulated – nothing is sent.</i>`, actions: [{ label: 'Copy link', a: 'copy-paylink', solid: false }, { label: 'Close', a: 'modal-close', solid: true }] };
+      app.ui.paylink = `https://seller.indiamart.com/pay?proforma=${p.proforma}`;
+    },
+    'copy-paylink'() { try { navigator.clipboard.writeText(app.ui.paylink); app.toast('Link copied'); } catch (e) { app.toast(app.ui.paylink); } app.ui.modal = null; },
+    'modal-close'() { app.ui.modal = null; },
+    'modal-close-bg'(el, ev) { if (ev.target === el) app.ui.modal = null; else return 'skip'; },
+    'discard-edit'() { app.ui.modal = null; app.state.editing = null; const prev = app.state.history.pop(); app.state.screen = prev || 'proposals'; },
+
+    // editor
+    'ed-tab'(el) {
+      const ed = app.state.editing; ed.tab = el.dataset.id;
+      if (el.dataset.id !== 'OTHERS') {
+        const key = Object.keys(app.cfg.services).find(k => app.cfg.services[k].tab === el.dataset.id);
+        if (key && key !== ed.final.serviceKey) { S.applyService(ed.final, seller(), app.cfg, key); edited(); }
+      }
+    },
+    'ed-clear-service'() { const f = app.state.editing.final; f.serviceKey = null; f.tenure = null; f.lines = []; edited(); },
+    'ed-tenure'(el) {
+      const f = app.state.editing.final;
+      const list = UC.PricingEngine.tenuresFor(app.cfg, f.serviceKey);
+      const i = (list.indexOf(f.tenure) + Number(el.dataset.dir) + list.length) % list.length;
+      if (list[i] !== f.tenure) { S.setTenure(f, app.cfg, list[i]); edited(); }
+      if (f.lines.some(l => l.mrp === null)) app.toast(`${list[i]} price not configured for some tiers`);
+    },
+    'mcat-remove'(el) { S.removeMcat(app.state.editing.final, el.dataset.id); edited(); },
+    'mcat-add-open'() { app.ui.sheet = 'mcat'; },
+    'mcat-add-confirm'() {
+      const ids = Array.from(document.querySelectorAll('[data-in="pick"]:checked')).map(x => x.dataset.id);
+      ids.forEach(id => S.addMcat(app.state.editing.final, seller(), app.cfg, id));
+      app.ui.sheet = null;
+      if (ids.length) { edited(); app.toast(`${ids.length} MCAT${ids.length > 1 ? 's' : ''} added`); }
+    },
+    'ed-toggle'(el) {
+      const f = app.state.editing.final, k = el.dataset.k;
+      f[k].on = !f[k].on;
+      if (k === 'partPayment' && f[k].on && !f[k].advance) f[k].advance = Math.round(UC.PricingEngine.totals(app.cfg, f).payable / 2);
+      edited();
+    },
+    'ed-update'() { commitEdit(false); },
+    'ed-update-preview'() { commitEdit(true); },
+    'send-final'(el) { startSending(el.dataset.id); return 'skip'; },
+    'email-desktop'() { app.ui.desktopEmail = true; renderDesktopEmail(); return 'skip'; },
+    'email-desktop-close'() { app.ui.desktopEmail = false; renderDesktopEmail(); return 'skip'; },
+    'sheet-close'() { app.ui.sheet = null; },
+    'sheet-close-bg'(el, ev) { if (ev.target === el) app.ui.sheet = null; else return 'skip'; },
+
+    // dev panel
+    'dev-tab'(el) { app.ui.devTab = el.dataset.id; if (el.dataset.id === 'tests' && !app.ui.testResults) app.ui.testResults = UC.Tests.run(app.cfg); },
+    'run-tests'() { app.ui.testResults = UC.Tests.run(app.cfg); app.toast(`${app.ui.testResults.filter(r => r.pass).length}/${app.ui.testResults.length} tests passed`); },
+    'export-tracking'() {
+      const blob = new Blob([JSON.stringify(Object.values(app.state.tracking), null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'upsell-compass-tracking.json'; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      return 'skip';
+    },
+    'cfg-apply'() {
+      let parsed;
+      try { parsed = JSON.parse(document.getElementById('cfg-text').value); }
+      catch (e) { app.toast('Config is not valid JSON: ' + e.message); return 'skip'; }
+      app.cfg = parsed; dropDrafts(); app.ui.testResults = null;
+      document.activeElement && document.activeElement.blur();
+      app.toast('Config applied – unsent system drafts regenerated on next +');
+    },
+    'cfg-reset'() { app.cfg = U.clone(UC.DEFAULT_CONFIG); dropDrafts(); app.ui.testResults = null; document.activeElement && document.activeElement.blur(); app.toast('Default config restored'); },
+    'reset-all'() {
+      app.ui.modal = { title: 'Reset prototype?', html: 'Clears all generated / sent proposals, tracking records, notifications and config edits.', actions: [{ label: 'Cancel', a: 'modal-close' }, { label: 'Reset', a: 'reset-confirm', solid: true }] };
+    },
+    'reset-confirm'() { app.state = S.newState(); app.cfg = U.clone(UC.DEFAULT_CONFIG); app.ui.modal = null; app.ui.testResults = null; app.toast('Prototype reset'); },
+    'dev-open'() { document.getElementById('devpanel').classList.add('open-mobile'); return 'skip'; },
+    'dev-close'() { document.getElementById('devpanel').classList.remove('open-mobile'); return 'skip'; }
+  };
+
+  function dropDrafts() {
+    Object.values(app.state.workspaces).forEach(ws => {
+      ws.proposals = ws.proposals.filter(p => !(p.status === 'Draft' && p.origin === 'system'));
+      ws.draftId = null; ws.revealed = false;
+    });
+    if (app.state.editing) { app.state.editing = null; app.state.screen = 'proposals'; app.state.history = ['profile']; }
+  }
+
+  /* ---------------- input actions (no full re-render while typing) ---------------- */
+  const toNum = v => { const n = Number(String(v).replace(/[^\d.]/g, '')); return isNaN(n) ? 0 : n; };
+  function onInput(el) {
+    const ed = app.state.editing;
+    const k = el.dataset.in;
+    if (!ed) return;
+    const f = ed.final;
+    if (k === 'deal') f.lines[Number(el.dataset.idx)].deal = toNum(el.value);
+    else if (k === 'pp-adv') f.partPayment.advance = toNum(el.value);
+    else if (k === 'pp-days') f.partPayment.inst1Days = toNum(el.value);
+    else if (k === 'tds-pct') f.tds.pct = toNum(el.value);
+    else if (k === 'disc-pct') { f.discount.mode = 'pct'; f.discount.pct = toNum(el.value); f.discount.amt = 0; const o = document.querySelector('[data-in="disc-amt"]'); if (o) o.value = ''; }
+    else if (k === 'disc-amt') { f.discount.mode = 'amt'; f.discount.amt = toNum(el.value); f.discount.pct = 0; const o = document.querySelector('[data-in="disc-pct"]'); if (o) o.value = ''; }
+    else return;
+    edited();
+    UC.UI.refreshEditorNumbers(app);
+    save();
+  }
+  function onChange(el) {
+    const ed = app.state.editing;
+    if (el.id === 'ed-service') {
+      if (el.value) { S.applyService(ed.final, seller(), app.cfg, el.value); edited(); render(); }
+      return;
+    }
+    if (!ed) return;
+    const k = el.dataset.in;
+    if (k === 'offer') { ed.final.discount.offerId = el.checked ? el.dataset.id : null; edited(); UC.UI.refreshEditorNumbers(app); save(); }
+    if (k === 'valid') { ed.final.validTill = el.value; edited(); UC.UI.refreshEditorNumbers(app); save(); }
+  }
+
+  /* ---------------- boot ---------------- */
+  function init() {
+    const saved = load();
+    app.state = saved ? saved.state : S.newState();
+    app.cfg = saved && saved.cfg ? saved.cfg : U.clone(UC.DEFAULT_CONFIG);
+    if (app.state.screen === 'edit' && !app.state.editing) app.state.screen = 'proposals';
+    if ((app.state.screen === 'preview' || app.state.screen === 'sent') && !app.state.viewing) app.state.screen = 'proposals';
+
+    document.addEventListener('click', ev => {
+      const el = ev.target.closest('[data-a]');
+      // close floating menus on outside click
+      if (!ev.target.closest('.search') && app.ui.search) { app.ui.search = ''; const dd = document.getElementById('search-dd'); if (dd) dd.innerHTML = ''; const si = document.getElementById('seller-search'); if (si) si.value = ''; }
+      if (!el) {
+        if (app.ui.notifOpen && !ev.target.closest('.notif-pop')) { app.ui.notifOpen = false; render(); }
+        if (app.ui.filterOpen && !ev.target.closest('.filter-pop')) { app.ui.filterOpen = false; render(); }
+        return;
+      }
+      const fn = A[el.dataset.a];
+      if (!fn) return;
+      if (el.getAttribute('aria-disabled') === 'true' && el.dataset.a !== 'send-final') return;
+      const r = fn(el, ev);
+      if (el.dataset.a !== 'notif') app.ui.notifOpen = false;
+      if (r !== 'skip') render();
+    });
+    document.addEventListener('input', ev => {
+      if (ev.target.id === 'seller-search') {
+        app.ui.search = ev.target.value;
+        document.getElementById('search-dd').innerHTML = UC.UI.searchResults(app);
+        return;
+      }
+      if (ev.target.dataset && ev.target.dataset.in && ev.target.type !== 'checkbox' && ev.target.type !== 'date') onInput(ev.target);
+    });
+    document.addEventListener('change', ev => onChange(ev.target));
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape') {
+        if (app.ui.desktopEmail) { app.ui.desktopEmail = false; renderDesktopEmail(); return; }
+        if (app.ui.sheet || app.ui.modal || app.ui.notifOpen || app.ui.filterOpen) { app.ui.sheet = null; app.ui.modal = null; app.ui.notifOpen = false; app.ui.filterOpen = false; render(); }
+      }
+    });
+    render();
+  }
+
+  app.init = init;
+  app.render = render;
+  return app;
+})();
+
+document.addEventListener('DOMContentLoaded', UC.App.init);
+
+</script>
+</body>
+</html>
